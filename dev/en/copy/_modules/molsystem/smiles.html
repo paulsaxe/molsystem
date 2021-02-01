@@ -1,0 +1,437 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>molsystem.smiles &mdash; MolSystem Step 2020.12.5+21.g1f45da7 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/custom.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> MolSystem Step
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2020.12.5+21.g1f45da7
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../user/index.html">User Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developer/index.html">Developer Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../authors.html">Credits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">History</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://molssi-seamm.github.io">Main SEAMM documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">MolSystem Step</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>molsystem.smiles</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for molsystem.smiles</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="sd">&quot;&quot;&quot;Functions for handling SMILES&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">openbabel</span> <span class="kn">import</span> <span class="n">openbabel</span>
+<span class="k">except</span> <span class="ne">ModuleNotFoundError</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="s1">&#39;Please install openbabel using conda:</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="s1">&#39;     conda install -c conda-forge openbabel&#39;</span>
+    <span class="p">)</span>
+    <span class="k">raise</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="SMILESMixin"><a class="viewcode-back" href="../../developer/molsystem.html#molsystem.smiles.SMILESMixin">[docs]</a><span class="k">class</span> <span class="nc">SMILESMixin</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;A mixin for handling SMILES.&quot;&quot;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">canonical_smiles</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the canonical SMILES string for this object.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_smiles</span><span class="p">(</span><span class="n">canonical</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">smarts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the SMARTS string for this object.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_smarts</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">smiles</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the SMILES string for this object.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_smiles</span><span class="p">()</span>
+
+<div class="viewcode-block" id="SMILESMixin.to_smiles"><a class="viewcode-back" href="../../developer/molsystem.html#molsystem.smiles.SMILESMixin.to_smiles">[docs]</a>    <span class="k">def</span> <span class="nf">to_smiles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">canonical</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">hydrogens</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create the SMILES string from the system.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        canonical : bool = False</span>
+<span class="sd">            Whether to create canonical SMILES</span>
+<span class="sd">        hydrogens : bool = False</span>
+<span class="sd">            Whether to keep H&#39;s in the SMILES string.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str</span>
+<span class="sd">            The SMILES string, or (SMILES, name) if the rname is requested</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;to_smiles&#39;</span><span class="p">)</span>
+
+        <span class="n">obConversion</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBConversion</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">canonical</span><span class="p">:</span>
+            <span class="n">obConversion</span><span class="o">.</span><span class="n">SetOutFormat</span><span class="p">(</span><span class="s2">&quot;can&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">obConversion</span><span class="o">.</span><span class="n">SetOutFormat</span><span class="p">(</span><span class="s2">&quot;smi&quot;</span><span class="p">)</span>
+
+        <span class="n">mol</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_OBMol</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">hydrogens</span><span class="p">:</span>
+            <span class="n">obConversion</span><span class="o">.</span><span class="n">AddOption</span><span class="p">(</span><span class="s1">&#39;h&#39;</span><span class="p">)</span>
+        <span class="n">smiles</span> <span class="o">=</span> <span class="n">obConversion</span><span class="o">.</span><span class="n">WriteString</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;smiles = &#39;</span><span class="si">{</span><span class="n">smiles</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">smiles</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="SMILESMixin.from_smiles"><a class="viewcode-back" href="../../developer/molsystem.html#molsystem.smiles.SMILESMixin.from_smiles">[docs]</a>    <span class="k">def</span> <span class="nf">from_smiles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">smiles</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create the system from a SMILES string.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        smiles : str</span>
+<span class="sd">            The SMILES string</span>
+<span class="sd">        name : str = None</span>
+<span class="sd">            The name of the molecule</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">save</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+
+        <span class="n">obConversion</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBConversion</span><span class="p">()</span>
+        <span class="n">obConversion</span><span class="o">.</span><span class="n">SetInAndOutFormats</span><span class="p">(</span><span class="s2">&quot;smi&quot;</span><span class="p">,</span> <span class="s2">&quot;mdl&quot;</span><span class="p">)</span>
+        <span class="n">obConversion</span><span class="o">.</span><span class="n">AddOption</span><span class="p">(</span><span class="s1">&#39;3&#39;</span><span class="p">)</span>
+        <span class="n">mol</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBMol</span><span class="p">()</span>
+        <span class="n">obConversion</span><span class="o">.</span><span class="n">ReadString</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">smiles</span><span class="p">)</span>
+
+        <span class="c1"># Add hydrogens</span>
+        <span class="n">mol</span><span class="o">.</span><span class="n">AddHydrogens</span><span class="p">()</span>
+
+        <span class="c1"># Get coordinates for a 3-D structure</span>
+        <span class="n">builder</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBBuilder</span><span class="p">()</span>
+        <span class="n">builder</span><span class="o">.</span><span class="n">Build</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+
+        <span class="n">molfile</span> <span class="o">=</span> <span class="n">obConversion</span><span class="o">.</span><span class="n">WriteString</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">from_molfile_text</span><span class="p">(</span><span class="n">molfile</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">save</span></div>
+
+<div class="viewcode-block" id="SMILESMixin.to_smarts"><a class="viewcode-back" href="../../developer/molsystem.html#molsystem.smiles.SMILESMixin.to_smarts">[docs]</a>    <span class="k">def</span> <span class="nf">to_smarts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Generate a SMARTS string for this object.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        str</span>
+<span class="sd">            The SMARTS string.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">generator</span> <span class="o">=</span> <span class="n">GenSMARTS</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">generator</span><span class="o">.</span><span class="n">smarts</span></div></div>
+
+
+<div class="viewcode-block" id="GenSMARTS"><a class="viewcode-back" href="../../developer/molsystem.html#molsystem.smiles.GenSMARTS">[docs]</a><span class="k">class</span> <span class="nc">GenSMARTS</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A class to generate SMARTS strings for an object.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    mol_object : _Configuration, _Template, _Subset</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mol_object</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">smarts</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mol_object</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">visited</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">neighbors</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">mol_object</span> <span class="o">=</span> <span class="n">mol_object</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">mol_object</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The molecular object to work with.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mol_object</span>
+
+    <span class="nd">@mol_object</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">mol_object</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mol_object</span> <span class="o">=</span> <span class="n">value</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mol_object</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">atoms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mol_object</span><span class="o">.</span><span class="n">atoms</span>
+            <span class="n">bonds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mol_object</span><span class="o">.</span><span class="n">bonds</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span> <span class="o">=</span> <span class="n">atoms</span><span class="o">.</span><span class="n">symbols</span>
+
+            <span class="c1"># Find the neighbors of each atom for walking the structure</span>
+            <span class="n">tmp_neighbors</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">atoms</span><span class="o">.</span><span class="n">ids</span><span class="p">}</span>
+            <span class="k">for</span> <span class="n">bond</span> <span class="ow">in</span> <span class="n">bonds</span><span class="o">.</span><span class="n">bonds</span><span class="p">():</span>
+                <span class="n">i</span> <span class="o">=</span> <span class="n">bond</span><span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">]</span>
+                <span class="n">j</span> <span class="o">=</span> <span class="n">bond</span><span class="p">[</span><span class="s1">&#39;j&#39;</span><span class="p">]</span>
+                <span class="n">bo</span> <span class="o">=</span> <span class="n">bond</span><span class="p">[</span><span class="s1">&#39;bondorder&#39;</span><span class="p">]</span>
+                <span class="n">tmp_neighbors</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">j</span><span class="p">,</span> <span class="n">bo</span><span class="p">))</span>
+                <span class="n">tmp_neighbors</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">i</span><span class="p">,</span> <span class="n">bo</span><span class="p">))</span>
+
+            <span class="c1"># The index of each atom id in the list, 0..natoms-1</span>
+            <span class="n">index</span> <span class="o">=</span> <span class="p">{</span><span class="n">j</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">atoms</span><span class="o">.</span><span class="n">ids</span><span class="p">)}</span>
+
+            <span class="c1"># Convert to indices</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">neighbors</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">js</span> <span class="ow">in</span> <span class="n">tmp_neighbors</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">neighbors</span><span class="p">[</span><span class="n">index</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[(</span><span class="n">index</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">bo</span><span class="p">)</span> <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">bo</span> <span class="ow">in</span> <span class="n">js</span><span class="p">]</span>
+
+            <span class="c1"># An array to keep track of the atoms visited</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">visited</span> <span class="o">=</span> <span class="p">[</span><span class="kc">False</span><span class="p">]</span> <span class="o">*</span> <span class="n">atoms</span><span class="o">.</span><span class="n">n_atoms</span>
+
+            <span class="c1"># And generate the SMARTS string</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">smarts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recurse</span><span class="p">(</span><span class="n">atom</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_recurse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atom</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Helper method for recursion to generate SMARTS.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        atom : int</span>
+<span class="sd">            Index of the atom to work with.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">symbol</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">[</span><span class="n">atom</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">visited</span><span class="p">[</span><span class="n">atom</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># How many neighbors, and how many are hydrogens</span>
+        <span class="n">nX</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">neighbors</span><span class="p">[</span><span class="n">atom</span><span class="p">])</span>
+        <span class="n">nH</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">neighbor</span><span class="p">,</span> <span class="n">bondorder</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">neighbors</span><span class="p">[</span><span class="n">atom</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">[</span><span class="n">neighbor</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;H&#39;</span><span class="p">:</span>
+                <span class="n">nH</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># Find any non-hydrogen neighbors that have not been visited,</span>
+        <span class="c1"># and recurse.</span>
+        <span class="n">sub_smarts</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">neighbor</span><span class="p">,</span> <span class="n">bondorder</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">neighbors</span><span class="p">[</span><span class="n">atom</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">[</span><span class="n">neighbor</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;H&#39;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">visited</span><span class="p">[</span><span class="n">neighbor</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="n">bondorder</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">bond</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+                <span class="k">elif</span> <span class="n">bondorder</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="n">bond</span> <span class="o">=</span> <span class="s1">&#39;=&#39;</span>
+                <span class="k">elif</span> <span class="n">bondorder</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                    <span class="n">bond</span> <span class="o">=</span> <span class="s1">&#39;#&#39;</span>
+                <span class="k">elif</span> <span class="n">bondorder</span> <span class="o">==</span> <span class="mi">5</span><span class="p">:</span>
+                    <span class="c1"># Aromatic</span>
+                    <span class="n">symbol</span> <span class="o">=</span> <span class="n">symbol</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                    <span class="n">bond</span> <span class="o">=</span> <span class="s1">&#39;:&#39;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">bond</span> <span class="o">=</span> <span class="s1">&#39;~&#39;</span>
+                <span class="n">sub_smarts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">bond</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">_recurse</span><span class="p">(</span><span class="n">neighbor</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">smarts</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="n">symbol</span><span class="si">}</span><span class="s2">H</span><span class="si">{</span><span class="n">nH</span><span class="si">}</span><span class="s2">X</span><span class="si">{</span><span class="n">nX</span><span class="si">}</span><span class="s2">]&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sub_smarts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">sub</span> <span class="ow">in</span> <span class="n">sub_smarts</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="n">smarts</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">sub</span><span class="si">}</span><span class="s2">)&quot;</span>
+            <span class="n">smarts</span> <span class="o">+=</span> <span class="n">sub_smarts</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">smarts</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+
+    </p>
+  </div>
+
+<p>
+<div class="row">
+  <div class="column_left">
+    <a href="https://molssi.org/" target="_blank" title="Go to MolSSI in a new tab">
+      <img src="/_images/MolSSI.jpg" alt="The MolSSI" style="border:0;">
+    </a>
+  </div>
+  <div class="column">
+    &copy; Copyright 2020, the Molecular Sciences Software Institute,
+    which receives funding from the National Science Foundation under award ACI-1547580
+  </div>
+  <div class="column_right">
+    <a href="https://nsf.gov/" target="_blank" title="Go to the NSF in a new tab">
+      <img src="/_images/NSF_4-Color_bitmap_Logo.png" alt="The NSF" style="border:0;">
+    </a>
+  </div>
+</div>
+
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

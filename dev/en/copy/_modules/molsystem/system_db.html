@@ -1,0 +1,1078 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>molsystem.system_db &mdash; MolSystem Step 2020.12.5+21.g1f45da7 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/custom.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> MolSystem Step
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2020.12.5+21.g1f45da7
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../user/index.html">User Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developer/index.html">Developer Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../authors.html">Credits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">History</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://molssi-seamm.github.io">Main SEAMM documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">MolSystem Step</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>molsystem.system_db</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for molsystem.system_db</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="sd">&quot;&quot;&quot;A dictionary-like object for holding a system</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">collections.abc</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">sqlite3</span>
+
+<span class="kn">import</span> <span class="nn">molsystem</span>
+<span class="kn">from</span> <span class="nn">.cif</span> <span class="kn">import</span> <span class="n">CIFMixin</span>
+<span class="kn">from</span> <span class="nn">.configuration</span> <span class="kn">import</span> <span class="n">_Configuration</span>
+<span class="kn">from</span> <span class="nn">.system</span> <span class="kn">import</span> <span class="n">_System</span>
+<span class="kn">from</span> <span class="nn">.table</span> <span class="kn">import</span> <span class="n">_Table</span>
+<span class="kn">from</span> <span class="nn">.templates</span> <span class="kn">import</span> <span class="n">_Templates</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="SystemDB"><a class="viewcode-back" href="../../developer/molsystem.html#molsystem.system_db.SystemDB">[docs]</a><span class="k">class</span> <span class="nc">SystemDB</span><span class="p">(</span><span class="n">CIFMixin</span><span class="p">,</span> <span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">MutableMapping</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A database of systems for SEAMM.</span>
+
+<span class="sd">    A class based on a SQLite database for describing molecular and</span>
+<span class="sd">    periodic systems.</span>
+
+<span class="sd">    See the documentation at https://molssi-seamm.github.io/molsystem</span>
+<span class="sd">    for a complete description of the database schema, including a</span>
+<span class="sd">    diagram.</span>
+
+<span class="sd">    The key concepts are:</span>
+
+<span class="sd">    System</span>
+<span class="sd">        The overall container for the configurations, atoms, bonds,</span>
+<span class="sd">        etc. A system has one or more configurations (conformers),</span>
+<span class="sd">        each of which details the atoms, bonds, etc.</span>
+
+<span class="sd">    Configuration</span>
+<span class="sd">        The configuration is a single instance of the system, with</span>
+<span class="sd">        atoms, coordinates, bonds and subsets. It is close to what</span>
+<span class="sd">        most programs consider the molecule or crystal.</span>
+
+<span class="sd">        There may be different set of atoms in different</span>
+<span class="sd">        configurations of a single system. This supports e.g. grand</span>
+<span class="sd">        canonical ensembles.</span>
+
+<span class="sd">        The set of bonds may also differ between different</span>
+<span class="sd">        configurations, whether or not the set of atoms changes. This</span>
+<span class="sd">        supports e.g. reactive forcefields.</span>
+
+<span class="sd">        Each configuration also has its own set of subsets, which are</span>
+<span class="sd">        a way of collecting atoms into groups, and can be thought of</span>
+<span class="sd">        as a generalization of the chain and residue nomenclature for</span>
+<span class="sd">        proteins. A configuration may have any number of subsets, and</span>
+<span class="sd">        atoms may be in more than one subset.</span>
+
+<span class="sd">    Atoms</span>
+<span class="sd">        Each configuration contains a set of atoms, though different</span>
+<span class="sd">        configurations may contain different atoms. Each atom is</span>
+<span class="sd">        identified by its atomic number and unique name and has</span>
+<span class="sd">        coordinates. It may also have other attributes, but that</span>
+<span class="sd">        depends on the simulation.</span>
+
+<span class="sd">    Bonds</span>
+<span class="sd">        Each configuration may also have information on bonds between</span>
+<span class="sd">        the atoms. A bond connects two atoms, and has a bond order</span>
+<span class="sd">        (single, double, triple, aromatic, ...). In periodic systems</span>
+<span class="sd">        with an infinite network of bonds, each bond also has a cell</span>
+<span class="sd">        offset to identify the relative cells of the two atoms.</span>
+
+<span class="sd">    Templates and Subsets</span>
+<span class="sd">        Subsets define groups of atoms in a general way. They are</span>
+<span class="sd">        defined by a template, which may be nothing more than a type</span>
+<span class="sd">        and name, e.g. &#39;residue/ala&#39;, or the template may be linked</span>
+<span class="sd">        with a system which has atoms, bonds, etc.</span>
+
+<span class="sd">        Each subset is linked to its group atoms. For example, the</span>
+<span class="sd">        template &#39;residue/ala&#39; mentioned above would have a subset for</span>
+<span class="sd">        each alanine in the protein. If the template were linked to a</span>
+<span class="sd">        system which was the alanine residue, then each atom would</span>
+<span class="sd">        also be connected with the appropriate atom in the template</span>
+<span class="sd">        system, so even if the order and names of atoms in the system</span>
+<span class="sd">        were different, we could still identify each atom with the</span>
+<span class="sd">        corresponding atom in the template system.</span>
+
+<span class="sd">    The tables that implement this are:</span>
+
+<span class="sd">    system</span>
+<span class="sd">        The list of all the systems in the database</span>
+
+<span class="sd">    configuration</span>
+<span class="sd">        The list of all configurations of all systems, labeled by the</span>
+<span class="sd">        system they belong to.</span>
+
+<span class="sd">    atom</span>
+<span class="sd">        The list of atoms in all systems and configurations. The</span>
+<span class="sd">        attributes of the atoms do not depend on the configuration,</span>
+<span class="sd">        i.e. are unchanging.</span>
+
+<span class="sd">    bond</span>
+<span class="sd">        The list of all bonds in all systems and configurations,</span>
+<span class="sd">        giving the two atoms that are bonded plus the bond order.</span>
+
+<span class="sd">    coordinates</span>
+<span class="sd">        The fractional or Cartesian coordinates of the atoms as well</span>
+<span class="sd">        as any other atomic properties that vary by configuration.</span>
+
+<span class="sd">    subset</span>
+<span class="sd">        The instances of subsets.</span>
+
+<span class="sd">    element</span>
+<span class="sd">        The periodic table, used as a foreign key to identify atoms.</span>
+
+<span class="sd">    template</span>
+<span class="sd">        The templates -- labels -- for subsets, which may connect the</span>
+<span class="sd">        subset to a template system.</span>
+
+<span class="sd">    configuration_subset</span>
+<span class="sd">        A joining table used to define which subsets are &quot;in&quot; a</span>
+<span class="sd">        configuration.</span>
+
+<span class="sd">    subset_atom</span>
+<span class="sd">        A joining table to define with atoms are in a subset. There is</span>
+<span class="sd">        an optional field for the template atom if the template has an</span>
+<span class="sd">        associated system. In this case, the template atom identifies</span>
+<span class="sd">        which atom in the template system is the same as the given</span>
+<span class="sd">        atom.</span>
+
+<span class="sd">    symmetry</span>
+<span class="sd">        Information about point or space group symmetry.</span>
+
+<span class="sd">    symmetryoperation</span>
+<span class="sd">        The detailed symmetry operations for the point or space</span>
+<span class="sd">        groups.</span>
+
+<span class="sd">    cell</span>
+<span class="sd">        The information about the periodicity of a configuration, if</span>
+<span class="sd">        needed.</span>
+
+<span class="sd">    atomset</span>
+<span class="sd">        A set of atoms, used with a joining table to connect atoms</span>
+<span class="sd">        with configurations.</span>
+
+<span class="sd">    atomset_atom</span>
+<span class="sd">        The joining table connecting atomsets with their atoms.</span>
+
+<span class="sd">    bondset</span>
+<span class="sd">        A set of bonds, used with a joining table to connect bonds</span>
+<span class="sd">        with configurations.</span>
+
+<span class="sd">    bondset_bond</span>
+<span class="sd">        The joining table connecting bondsets with their bonds.</span>
+
+<span class="sd">    :meta public:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parent</span> <span class="o">=</span> <span class="n">parent</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logger</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_attached</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_current_system_id</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># The id of the current system</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoints</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_db</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cursor</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_items</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">if</span> <span class="s1">&#39;filename&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;filename&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="s1">&#39;seamm.db&#39;</span>
+
+    <span class="k">def</span> <span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Destructor: need to close the database if any.&quot;&quot;&quot;</span>
+
+        <span class="c1"># Delete any cached objects</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_items</span>
+
+        <span class="c1"># And close the database</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_db</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+        <span class="n">backup</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">copy_system</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">temporary</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoints</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">backup</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">etype</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">traceback</span><span class="p">):</span>
+        <span class="n">backup</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoints</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">etype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+            <span class="c1"># Log the changes</span>
+            <span class="n">diffs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">backup</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">diffs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">version</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span> <span class="o">+</span> <span class="mi">1</span>
+
+            <span class="c1"># Not sure why this commit is needed...</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">overwrite</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">backup</span><span class="p">)</span>
+
+        <span class="c1"># and delete the copy</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="p">[</span><span class="n">backup</span><span class="o">.</span><span class="n">nickname</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Allow [] access to the dictionary!</span>
+
+<span class="sd">        Because some of the items, such as template contain state,</span>
+<span class="sd">        we need to ensure that the same object is used everywhere. Hence</span>
+<span class="sd">        the self._items array to store the instances.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        key : str</span>
+<span class="sd">            The table name or name of a multi-table item like atoms.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        table : Table</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_items</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_items</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">_Table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_items</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Allow x[key] access to the data&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Table &#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&#39; cannot be created yet&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Allow deletion of keys&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;DROP TABLE &#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Allow iteration over the object&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">list</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The len() command&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+            <span class="s2">&quot;SELECT COUNT(*)&quot;</span>
+            <span class="s2">&quot;  FROM sqlite_master&quot;</span>
+            <span class="s2">&quot; WHERE type = &#39;table&#39;&quot;</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># def __repr__(self):</span>
+    <span class="c1">#     &quot;&quot;&quot;The string representation of this object&quot;&quot;&quot;</span>
+    <span class="c1">#     raise NotImplementedError()</span>
+
+    <span class="c1"># def __str__(self):</span>
+    <span class="c1">#     &quot;&quot;&quot;The pretty string representation of this object&quot;&quot;&quot;</span>
+    <span class="c1">#     raise NotImplementedError()</span>
+
+    <span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">table</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a boolean indicating if a key exists.&quot;&quot;&quot;</span>
+        <span class="c1"># Normal the tablename is used as an identifier, so is quoted with &quot;.</span>
+        <span class="c1"># Here we need it as a string literal so strip any quotes from it.</span>
+        <span class="k">if</span> <span class="s1">&#39;.&#39;</span> <span class="ow">in</span> <span class="n">table</span><span class="p">:</span>
+            <span class="n">schema</span><span class="p">,</span> <span class="n">table</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+            <span class="n">schema</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">schema</span> <span class="o">=</span> <span class="s1">&#39;main&#39;</span>
+
+        <span class="n">table</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+            <span class="s2">&quot;SELECT COUNT(*)&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot; FROM </span><span class="si">{</span><span class="n">schema</span><span class="si">}</span><span class="s2">.sqlite_master&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot; WHERE type = &#39;table&#39; and name = &#39;</span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a boolean if this object is equal to another&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span> <span class="ow">is</span> <span class="n">other</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="n">tables</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">list</span><span class="p">())</span>
+        <span class="n">other_tables</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">list</span><span class="p">())</span>
+
+        <span class="n">added</span> <span class="o">=</span> <span class="n">tables</span> <span class="o">-</span> <span class="n">other_tables</span>
+        <span class="n">deleted</span> <span class="o">=</span> <span class="n">other_tables</span> <span class="o">-</span> <span class="n">tables</span>
+        <span class="n">in_common</span> <span class="o">=</span> <span class="n">tables</span> <span class="o">&amp;</span> <span class="n">other_tables</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">added</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">deleted</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="c1"># Need the contents of the tables. See if they are in the same</span>
+        <span class="c1"># database or if we need to attach the other database temporarily.</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">other_name</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">detach</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">!=</span> <span class="n">other_name</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_attached</span><span class="p">(</span><span class="n">other</span><span class="p">):</span>
+            <span class="c1"># Attach the other system in order to do comparisons.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+            <span class="n">detach</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># Check the tables in both systems</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">in_common</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="p">[</span><span class="n">table</span><span class="p">]</span> <span class="o">!=</span> <span class="n">other</span><span class="p">[</span><span class="n">table</span><span class="p">]:</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">break</span>
+
+        <span class="c1"># Detach the other database if needed</span>
+        <span class="k">if</span> <span class="n">detach</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">detach</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cursor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;A database cursor.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cursor</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">db</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The database connection.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_db</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">db_version</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The version string for the database.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;SELECT value FROM metadata WHERE key = &#39;version&#39;&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">filename</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The name of the file (or URI) for the database.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span>
+
+    <span class="nd">@filename</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">filename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_db</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_db</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_db</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_cursor</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">5</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;file:&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_db</span> <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_filename</span><span class="p">,</span> <span class="n">uri</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_db</span> <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_filename</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_db</span><span class="o">.</span><span class="n">row_factory</span> <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Row</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">&#39;PRAGMA foreign_keys = ON&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_db</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_initialize</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The names of the system.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;SELECT name FROM system&quot;</span><span class="p">)]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">n_systems</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The number of systems in the database.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;system&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">n_rows</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">n_templates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The number of templates.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">templates</span><span class="o">.</span><span class="n">n_rows</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">parent</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The parent of this, i.e. a Systems object.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parent</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">system</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The current system object.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_current_system_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_current_system_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_ids</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">_System</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_current_system_id</span><span class="p">)</span>
+
+    <span class="nd">@system</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">system</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="c1"># Might be a system or an integer</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">_System</span><span class="p">):</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">id</span>
+
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_ids</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;system &#39;</span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&#39; does not exist.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_current_system_id</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">systems</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The list of system objects.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">_System</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_id</span><span class="p">)</span> <span class="k">for</span> <span class="n">_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_ids</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">system_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The list of system ids.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;SELECT id FROM system&quot;</span><span class="p">)]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">templates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The defined templates.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">_Templates</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SystemDB.attach"><a class="viewcode-back" href="../../developer/molsystem.html#molsystem.system_db.SystemDB.attach">[docs]</a>    <span class="k">def</span> <span class="nf">attach</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Attach another system to this one&#39;s database.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        other : SystemDB</span>
+<span class="sd">            The other SystemDB object containing the database</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The attachment name.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_attached</span><span class="p">(</span><span class="n">other</span><span class="p">):</span>
+            <span class="c1"># Get a unique name for attaching as</span>
+            <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_attached</span><span class="p">)</span>
+            <span class="n">attached_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;db_</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">while</span> <span class="n">attached_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attached</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                <span class="n">n</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">attached_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;db_</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">&quot;</span>
+
+            <span class="c1"># and attach</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;ATTACH DATABASE &#39;</span><span class="si">{</span><span class="n">other</span><span class="o">.</span><span class="n">filename</span><span class="si">}</span><span class="s2">&#39; AS &#39;</span><span class="si">{</span><span class="n">attached_name</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_attached</span><span class="p">[</span><span class="n">other</span><span class="o">.</span><span class="n">filename</span><span class="p">]</span> <span class="o">=</span> <span class="n">attached_name</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attached</span><span class="p">[</span><span class="n">other</span><span class="o">.</span><span class="n">filename</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="SystemDB.attached_as"><a class="viewcode-back" href="../../developer/molsystem.html#molsystem.system_db.SystemDB.attached_as">[docs]</a>    <span class="k">def</span> <span class="nf">attached_as</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The attachment name for another system.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        other : SystemDB</span>
+<span class="sd">            The other SystemDB object containing the attached database</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The attachment name.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attached</span><span class="p">[</span><span class="n">other</span><span class="o">.</span><span class="n">filename</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="SystemDB.attributes"><a class="viewcode-back" href="../../developer/molsystem.html#molsystem.system_db.SystemDB.attributes">[docs]</a>    <span class="k">def</span> <span class="nf">attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tablename</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The attributes -- columns -- of a given table.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tablename : str</span>
+<span class="sd">            The name of the table, optionally including the schema followed by</span>
+<span class="sd">            a dot.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        attributes : Dict[str, Any]</span>
+<span class="sd">            A dictionary of dictionaries for the attributes and their</span>
+<span class="sd">            descriptors</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s1">&#39;.&#39;</span> <span class="ow">in</span> <span class="n">tablename</span><span class="p">:</span>
+            <span class="n">schema</span><span class="p">,</span> <span class="n">tablename</span> <span class="o">=</span> <span class="n">tablename</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;PRAGMA </span><span class="si">{</span><span class="n">schema</span><span class="si">}</span><span class="s2">.table_info(&#39;</span><span class="si">{</span><span class="n">tablename</span><span class="si">}</span><span class="s2">&#39;)&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;PRAGMA table_info(&#39;</span><span class="si">{</span><span class="n">tablename</span><span class="si">}</span><span class="s2">&#39;)&quot;</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">):</span>
+            <span class="n">result</span><span class="p">[</span><span class="n">line</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="n">line</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">],</span>
+                <span class="s1">&#39;notnull&#39;</span><span class="p">:</span> <span class="nb">bool</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="s1">&#39;notnull&#39;</span><span class="p">]),</span>
+                <span class="s1">&#39;default&#39;</span><span class="p">:</span> <span class="n">line</span><span class="p">[</span><span class="s1">&#39;dflt_value&#39;</span><span class="p">],</span>
+                <span class="s1">&#39;primary key&#39;</span><span class="p">:</span> <span class="nb">bool</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="s1">&#39;pk&#39;</span><span class="p">])</span>
+            <span class="p">}</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="SystemDB.close"><a class="viewcode-back" href="../../developer/molsystem.html#molsystem.system_db.SystemDB.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Close the database.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="SystemDB.create_system"><a class="viewcode-back" href="../../developer/molsystem.html#molsystem.system_db.SystemDB.create_system">[docs]</a>    <span class="k">def</span> <span class="nf">create_system</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">make_current</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add a new system.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str = None</span>
+<span class="sd">            A user-friendly name for the system, defaults to no name.</span>
+<span class="sd">        make_current : bool = True</span>
+<span class="sd">            If True, make this the current system.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        _System</span>
+<span class="sd">            The newly created system.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">_id</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;system&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">make_current</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_current_system_id</span> <span class="o">=</span> <span class="n">_id</span>
+
+        <span class="k">return</span> <span class="n">_System</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_id</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SystemDB.create_table"><a class="viewcode-back" href="../../developer/molsystem.html#molsystem.system_db.SystemDB.create_table">[docs]</a>    <span class="k">def</span> <span class="nf">create_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="bp">cls</span><span class="o">=</span><span class="n">_Table</span><span class="p">,</span> <span class="n">other</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a new table with the given name.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The name of the new table.</span>
+
+<span class="sd">        cls : Table subclass</span>
+<span class="sd">            The class of the new table, defaults to Table</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        table : class Table</span>
+<span class="sd">            The new table</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; already exists in the system.&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_items</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_items</span><span class="p">[</span><span class="n">name</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="SystemDB.delete_system"><a class="viewcode-back" href="../../developer/molsystem.html#molsystem.system_db.SystemDB.delete_system">[docs]</a>    <span class="k">def</span> <span class="nf">delete_system</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">system</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Delete an existing system.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        system : int or _System</span>
+<span class="sd">            The system to delete.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">system</span><span class="p">,</span> <span class="n">_System</span><span class="p">):</span>
+            <span class="n">sid</span> <span class="o">=</span> <span class="n">system</span><span class="o">.</span><span class="n">id</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sid</span> <span class="o">=</span> <span class="n">system</span>
+
+        <span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;DELETE FROM system WHERE id = ?&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="p">(</span><span class="n">sid</span><span class="p">,))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_current_system_id</span> <span class="o">==</span> <span class="n">sid</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_current_system_id</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="SystemDB.detach"><a class="viewcode-back" href="../../developer/molsystem.html#molsystem.system_db.SystemDB.detach">[docs]</a>    <span class="k">def</span> <span class="nf">detach</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Detach an attached system.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        other : SystemDB</span>
+<span class="sd">            The other SystemDB object containing the database</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_attached</span><span class="p">(</span><span class="n">other</span><span class="p">):</span>
+            <span class="n">attached_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attached_as</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;DETACH DATABASE &quot;</span><span class="si">{</span><span class="n">attached_name</span><span class="si">}</span><span class="s1">&quot;&#39;</span><span class="p">)</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attached</span><span class="p">[</span><span class="n">other</span><span class="o">.</span><span class="n">filename</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="SystemDB.diff"><a class="viewcode-back" href="../../developer/molsystem.html#molsystem.system_db.SystemDB.diff">[docs]</a>    <span class="k">def</span> <span class="nf">diff</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Differences between this system and another.&quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">if</span> <span class="bp">self</span> <span class="ow">is</span> <span class="n">other</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">result</span>
+
+        <span class="n">tables</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">list</span><span class="p">())</span>
+        <span class="n">other_tables</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">list</span><span class="p">())</span>
+
+        <span class="n">added</span> <span class="o">=</span> <span class="n">tables</span> <span class="o">-</span> <span class="n">other_tables</span>
+        <span class="n">deleted</span> <span class="o">=</span> <span class="n">other_tables</span> <span class="o">-</span> <span class="n">tables</span>
+        <span class="n">in_common</span> <span class="o">=</span> <span class="n">tables</span> <span class="o">&amp;</span> <span class="n">other_tables</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">added</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">result</span><span class="p">[</span><span class="s1">&#39;tables added&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">added</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">deleted</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">result</span><span class="p">[</span><span class="s1">&#39;tables deleted&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">deleted</span>
+
+        <span class="c1"># Need the contents of the tables. See if they are in the same</span>
+        <span class="c1"># database or if we need to attach the other database temporarily.</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filename</span>
+        <span class="n">other_name</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">filename</span>
+        <span class="n">detach</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">!=</span> <span class="n">other_name</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_attached</span><span class="p">(</span><span class="n">other</span><span class="p">):</span>
+            <span class="c1"># Attach the other system in order to do comparisons.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+            <span class="n">detach</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># Check the tables in both systems</span>
+        <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="n">in_common</span><span class="p">:</span>
+            <span class="n">tmp</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">table</span><span class="p">]</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">other</span><span class="p">[</span><span class="n">table</span><span class="p">])</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">result</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;table &#39;</span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">&#39; diffs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tmp</span>
+
+        <span class="c1"># Detach the other database if needed</span>
+        <span class="k">if</span> <span class="n">detach</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">detach</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="SystemDB.get_configuration"><a class="viewcode-back" href="../../developer/molsystem.html#molsystem.system_db.SystemDB.get_configuration">[docs]</a>    <span class="k">def</span> <span class="nf">get_configuration</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cid</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the specified configuration.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        cid : int</span>
+<span class="sd">            The id of the configuration.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        _Configuration</span>
+<span class="sd">            The requested configuration.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">_Configuration</span><span class="p">(</span><span class="n">_id</span><span class="o">=</span><span class="n">cid</span><span class="p">,</span> <span class="n">system_db</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SystemDB.get_system"><a class="viewcode-back" href="../../developer/molsystem.html#molsystem.system_db.SystemDB.get_system">[docs]</a>    <span class="k">def</span> <span class="nf">get_system</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_or_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the specified system object.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        id_or_name : int or str</span>
+<span class="sd">            The id (int) or name (str) of the system</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        _System</span>
+<span class="sd">            The requested system.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If the system does not exist, or more than one have the requested</span>
+<span class="sd">            name.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">id_or_name</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="c1"># The name of the system ... find it.</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;SELECT id FROM SYSTEM WHERE name = ?&quot;</span>
+            <span class="n">systems</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="p">(</span><span class="n">id_or_name</span><span class="p">,))]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">systems</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The system &#39;</span><span class="si">{</span><span class="n">id_or_name</span><span class="si">}</span><span class="s2">&#39; does not exist.&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">systems</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;There is more than one system named &#39;</span><span class="si">{</span><span class="n">id_or_name</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">id_or_name</span> <span class="o">=</span> <span class="n">systems</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">_System</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_or_name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SystemDB.is_attached"><a class="viewcode-back" href="../../developer/molsystem.html#molsystem.system_db.SystemDB.is_attached">[docs]</a>    <span class="k">def</span> <span class="nf">is_attached</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return whether another system is attached to this one.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        other : SystemDB</span>
+<span class="sd">            The other SystemDB object containing the database</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bool</span>
+<span class="sd">            Whether the database is attached.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">other</span><span class="o">.</span><span class="n">filename</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attached</span></div>
+
+<div class="viewcode-block" id="SystemDB.list"><a class="viewcode-back" href="../../developer/molsystem.html#molsystem.system_db.SystemDB.list">[docs]</a>    <span class="k">def</span> <span class="nf">list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a list of all the tables in the system.&quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+            <span class="s2">&quot;SELECT name&quot;</span>
+            <span class="s2">&quot;  FROM sqlite_master&quot;</span>
+            <span class="s2">&quot; WHERE type = &#39;table&#39;&quot;</span>
+        <span class="p">):</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+    <span class="k">def</span> <span class="nf">_initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize the SQLite database.</span>
+
+<span class="sd">        The order is a bit tricky, since many tables reference other tables,</span>
+<span class="sd">        and hence need to be created after the ones that they reference.</span>
+
+<span class="sd">        Start with the standalone tables:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># If the database is initialized, the metadata table exists.</span>
+        <span class="c1"># In the future we might need to check the version and upgrade</span>
+        <span class="c1"># older versions, but now at version 1.0 we are all done!</span>
+        <span class="k">if</span> <span class="s1">&#39;metadata&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="c1"># metadata, where we store, get the database version</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;metadata&#39;</span><span class="p">]</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;key&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;str&#39;</span><span class="p">,</span> <span class="n">pk</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;str&#39;</span><span class="p">)</span>
+
+            <span class="n">table</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="s1">&#39;version&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="s1">&#39;1.0&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+            <span class="c1"># The element table</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;element&#39;</span><span class="p">]</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;atno&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">pk</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;symbol&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;str&#39;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="s1">&#39;unique&#39;</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;mass&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;float&#39;</span><span class="p">)</span>
+
+            <span class="c1"># and fill it from the element data</span>
+            <span class="k">for</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">molsystem</span><span class="o">.</span><span class="n">elements</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">table</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">,</span>
+                    <span class="n">atno</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;atomic number&#39;</span><span class="p">],</span>
+                    <span class="n">mass</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;atomic weight&#39;</span><span class="p">]</span>
+                <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+            <span class="c1"># Symmetry information</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;symmetry&#39;</span><span class="p">]</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">pk</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;group&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;str&#39;</span><span class="p">)</span>
+
+            <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;symmetryoperation&#39;</span><span class="p">]</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span>
+                <span class="s1">&#39;symmetry&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">references</span><span class="o">=</span><span class="s1">&#39;symmetry&#39;</span>
+            <span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;symop&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;str&#39;</span><span class="p">)</span>
+
+            <span class="c1"># Periodic cell information</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;cell&#39;</span><span class="p">]</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">pk</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;float&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">10.0</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;float&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">10.0</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;float&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">10.0</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;alpha&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;float&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">90.0</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;float&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">90.0</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;gamma&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;float&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">90.0</span><span class="p">)</span>
+
+            <span class="c1"># The systems themselves</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;system&#39;</span><span class="p">]</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">pk</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span>
+                <span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;str&#39;</span><span class="p">,</span> <span class="n">notnull</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;default&#39;</span>
+            <span class="p">)</span>
+
+            <span class="c1"># The atoms, and the sets of atoms</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;atom&#39;</span><span class="p">]</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">pk</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;atno&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">references</span><span class="o">=</span><span class="s1">&#39;element&#39;</span><span class="p">)</span>
+
+            <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;atomset&#39;</span><span class="p">]</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">pk</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;atomset_atom&#39;</span><span class="p">]</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;atomset&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">references</span><span class="o">=</span><span class="s1">&#39;atomset&#39;</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;atom&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">references</span><span class="o">=</span><span class="s1">&#39;atom&#39;</span><span class="p">)</span>
+
+            <span class="c1"># The bonds, and sets of bonds</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;bond&#39;</span><span class="p">]</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">pk</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;i&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">references</span><span class="o">=</span><span class="s1">&#39;atom&#39;</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;j&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">references</span><span class="o">=</span><span class="s1">&#39;atom&#39;</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;bondorder&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;bondset&#39;</span><span class="p">]</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">pk</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;bondset_bond&#39;</span><span class="p">]</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;bondset&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">references</span><span class="o">=</span><span class="s1">&#39;bondset&#39;</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;bond&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">references</span><span class="o">=</span><span class="s1">&#39;bond&#39;</span><span class="p">)</span>
+
+            <span class="c1"># Now we can set up the configurations</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;configuration&#39;</span><span class="p">]</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">pk</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;str&#39;</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;system&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">references</span><span class="o">=</span><span class="s1">&#39;system&#39;</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span>
+                <span class="s1">&#39;version&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">notnull</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span>
+            <span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;periodicity&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span>
+                <span class="s1">&#39;coordinate_system&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;str&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;Cartesian&#39;</span>
+            <span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span>
+                <span class="s1">&#39;symmetry&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">references</span><span class="o">=</span><span class="s1">&#39;symmetry&#39;</span>
+            <span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;cell&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">references</span><span class="o">=</span><span class="s1">&#39;cell&#39;</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;atomset&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">references</span><span class="o">=</span><span class="s1">&#39;atomset&#39;</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;bondset&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">references</span><span class="o">=</span><span class="s1">&#39;bondset&#39;</span><span class="p">)</span>
+
+            <span class="c1"># And coordinates, which depend on configurations</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;coordinates&#39;</span><span class="p">]</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span>
+                <span class="s1">&#39;configuration&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">references</span><span class="o">=</span><span class="s1">&#39;configuration&#39;</span>
+            <span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;atom&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">references</span><span class="o">=</span><span class="s1">&#39;atom&#39;</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;float&#39;</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;float&#39;</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;float&#39;</span><span class="p">)</span>
+
+            <span class="c1"># The definition of the subsets -- templates</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;template&#39;</span><span class="p">]</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">pk</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;str&#39;</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;canonical_smiles&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;str&#39;</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;category&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;str&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">&#39;general&#39;</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span>
+                <span class="s1">&#39;configuration&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">references</span><span class="o">=</span><span class="s1">&#39;configuration&#39;</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                <span class="s2">&quot;CREATE UNIQUE INDEX &#39;idx_template_name_type&#39;&quot;</span>
+                <span class="s1">&#39;    ON template (&quot;name&quot;, &quot;type&quot;)&#39;</span>
+            <span class="p">)</span>
+
+            <span class="c1"># The subsets</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;subset&#39;</span><span class="p">]</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">pk</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span>
+                <span class="s1">&#39;configuration&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">references</span><span class="o">=</span><span class="s1">&#39;configuration&#39;</span>
+            <span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span>
+                <span class="s1">&#39;template&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">references</span><span class="o">=</span><span class="s1">&#39;template&#39;</span>
+            <span class="p">)</span>
+
+            <span class="c1"># The connection between subsets and the atoms in the system</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;subset_atom&#39;</span><span class="p">]</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;atom&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">references</span><span class="o">=</span><span class="s1">&#39;atom&#39;</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;subset&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">references</span><span class="o">=</span><span class="s1">&#39;subset&#39;</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span>
+                <span class="s1">&#39;templateatom&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">references</span><span class="o">=</span><span class="s1">&#39;atom&#39;</span>
+            <span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+<div class="viewcode-block" id="SystemDB.system_exists"><a class="viewcode-back" href="../../developer/molsystem.html#molsystem.system_db.SystemDB.system_exists">[docs]</a>    <span class="k">def</span> <span class="nf">system_exists</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_or_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;See if the given system exists.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        id_or_name : int or str</span>
+<span class="sd">            The id (int) or name (str) of the system</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bool</span>
+<span class="sd">            Whether it exists.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">id_or_name</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="c1"># The name of the system ... find it.</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;SELECT COUNT(*) FROM SYSTEM WHERE name = ?&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="p">(</span><span class="n">id_or_name</span><span class="p">,))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;SELECT COUNT(*) FROM SYSTEM WHERE id = ?&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="p">(</span><span class="n">id_or_name</span><span class="p">,))</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+
+    </p>
+  </div>
+
+<p>
+<div class="row">
+  <div class="column_left">
+    <a href="https://molssi.org/" target="_blank" title="Go to MolSSI in a new tab">
+      <img src="/_images/MolSSI.jpg" alt="The MolSSI" style="border:0;">
+    </a>
+  </div>
+  <div class="column">
+    &copy; Copyright 2020, the Molecular Sciences Software Institute,
+    which receives funding from the National Science Foundation under award ACI-1547580
+  </div>
+  <div class="column_right">
+    <a href="https://nsf.gov/" target="_blank" title="Go to the NSF in a new tab">
+      <img src="/_images/NSF_4-Color_bitmap_Logo.png" alt="The NSF" style="border:0;">
+    </a>
+  </div>
+</div>
+
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

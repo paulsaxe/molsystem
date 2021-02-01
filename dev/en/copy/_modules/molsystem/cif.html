@@ -1,0 +1,899 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>molsystem.cif &mdash; MolSystem Step 2020.12.5+21.g1f45da7 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/custom.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> MolSystem Step
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2020.12.5+21.g1f45da7
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../user/index.html">User Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developer/index.html">Developer Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../authors.html">Credits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">History</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://molssi-seamm.github.io">Main SEAMM documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">MolSystem Step</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>molsystem.cif</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for molsystem.cif</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="sd">&quot;&quot;&quot;Functions for handling CIF files</span>
+
+<span class="sd">Bond Orders</span>
+<span class="sd">-----------</span>
+<span class="sd">1 sing	single bond</span>
+<span class="sd">2 doub	double bond</span>
+<span class="sd">3 trip	triple bond</span>
+<span class="sd">4 quad	quadruple bond</span>
+<span class="sd">5 arom	aromatic bond</span>
+<span class="sd">6 delo	delocalized double bond</span>
+<span class="sd">7 pi	pi bond</span>
+<span class="sd">8 poly	polymeric bond</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">io</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">math</span>
+
+<span class="kn">import</span> <span class="nn">CifFile</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">bond_order</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="mi">1</span><span class="p">:</span> <span class="s1">&#39;SING&#39;</span><span class="p">,</span>
+    <span class="mi">2</span><span class="p">:</span> <span class="s1">&#39;DOUB&#39;</span><span class="p">,</span>
+    <span class="mi">3</span><span class="p">:</span> <span class="s1">&#39;TRIP&#39;</span><span class="p">,</span>
+    <span class="mi">4</span><span class="p">:</span> <span class="s1">&#39;QUAD&#39;</span><span class="p">,</span>
+    <span class="mi">5</span><span class="p">:</span> <span class="s1">&#39;AROM&#39;</span><span class="p">,</span>
+    <span class="mi">6</span><span class="p">:</span> <span class="s1">&#39;DELO&#39;</span><span class="p">,</span>
+    <span class="mi">7</span><span class="p">:</span> <span class="s1">&#39;PI&#39;</span><span class="p">,</span>
+    <span class="mi">8</span><span class="p">:</span> <span class="s1">&#39;POLY&#39;</span>
+<span class="p">}</span>
+<span class="n">to_bond_order</span> <span class="o">=</span> <span class="p">{</span><span class="n">j</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">bond_order</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+
+<div class="viewcode-block" id="CIFMixin"><a class="viewcode-back" href="../../molsystem.html#molsystem.cif.CIFMixin">[docs]</a><span class="k">class</span> <span class="nc">CIFMixin</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;A mixin for handling CIF files.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="CIFMixin.read_cif_file"><a class="viewcode-back" href="../../molsystem.html#molsystem.cif.CIFMixin.read_cif_file">[docs]</a>    <span class="k">def</span> <span class="nf">read_cif_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create new systems from a CIF file.</span>
+
+<span class="sd">        Read a CIF file and create a new system from each datablock in</span>
+<span class="sd">        the file.</span>
+
+<span class="sd">        If the datablock has an ensemble, as denoted by a section</span>
+<span class="sd">        &#39;_pdbx_nmr_ensemble&#39;, a configuration will be created for each</span>
+<span class="sd">        conformer. If there is a representative conformer, the current</span>
+<span class="sd">        configuration will point to it; otherwise to the last conformer.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        path : str or Path</span>
+<span class="sd">            A string or Path object pointing to the file to be read.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        [_System]</span>
+<span class="sd">            List of systems created.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s1">&#39;SystemDB&#39;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)):</span>
+            <span class="n">sys_db</span> <span class="o">=</span> <span class="bp">self</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sys_db</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span>
+
+        <span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">systems</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">configurations</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">in_block</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">block_name</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fd</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">fd</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">5</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;data_&#39;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found block </span><span class="si">{</span><span class="n">line</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">in_block</span><span class="p">:</span>
+                        <span class="n">in_block</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">new_systems</span><span class="p">,</span> <span class="n">new_configurations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">from_mmcif_text</span><span class="p">(</span>
+                            <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+                        <span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;   added system </span><span class="si">{</span><span class="n">sys_db</span><span class="o">.</span><span class="n">n_systems</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">block_name</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="p">)</span>
+                        <span class="n">systems</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">new_systems</span><span class="p">)</span>
+                        <span class="n">configurations</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">new_configurations</span><span class="p">)</span>
+                    <span class="n">block_name</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="mi">5</span><span class="p">:]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                    <span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="c1"># The last block just ends at the end of the file</span>
+                <span class="n">new_systems</span><span class="p">,</span> <span class="n">new_configurations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">from_mmcif_text</span><span class="p">(</span>
+                    <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;   added system </span><span class="si">{</span><span class="n">sys_db</span><span class="o">.</span><span class="n">n_systems</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">block_name</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+                <span class="n">systems</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">new_systems</span><span class="p">)</span>
+                <span class="n">configurations</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">new_configurations</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">systems</span><span class="p">,</span> <span class="n">configurations</span></div>
+
+<div class="viewcode-block" id="CIFMixin.to_cif_text"><a class="viewcode-back" href="../../molsystem.html#molsystem.cif.CIFMixin.to_cif_text">[docs]</a>    <span class="k">def</span> <span class="nf">to_cif_text</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create the text of a CIF file from this configuration.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        text : str</span>
+<span class="sd">            The text of the file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">atoms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span>
+
+        <span class="c1"># Get the chemical formula</span>
+        <span class="n">formula</span><span class="p">,</span> <span class="n">empirical_formula</span><span class="p">,</span> <span class="n">Z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">formula</span>
+
+        <span class="n">_id</span> <span class="o">=</span> <span class="n">empirical_formula</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+        <span class="c1"># And created the file, line-by-line</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;# Generated by MolSSI SEAMM&#39;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;data_</span><span class="si">{</span><span class="n">_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Cell information</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">periodicity</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">cell</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cell</span>
+            <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span> <span class="o">=</span> <span class="n">cell</span><span class="o">.</span><span class="n">parameters</span>
+            <span class="n">volume</span> <span class="o">=</span> <span class="n">cell</span><span class="o">.</span><span class="n">volume</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;_symmetry_space_group_name_H-M   &#39;P 1&#39;&quot;</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;_cell_length_a   </span><span class="si">{</span><span class="n">a</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;_cell_length_b   </span><span class="si">{</span><span class="n">b</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;_cell_length_c   </span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;_cell_angle_alpha   </span><span class="si">{</span><span class="n">alpha</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;_cell_angle_beta    </span><span class="si">{</span><span class="n">beta</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;_cell_angle_gamma   </span><span class="si">{</span><span class="n">gamma</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;_symmetry_Int_Tables_number   1&#39;</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;_cell_volume   </span><span class="si">{</span><span class="n">volume</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;_cell_formula_units_Z   </span><span class="si">{</span><span class="n">Z</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;loop_&#39;</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; _symmetry_equiv_pos_site_id&#39;</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; _symmetry_equiv_pos_as_xyz&#39;</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;  1  &#39;x, y, z&#39;&quot;</span><span class="p">)</span>
+
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;_chemical_formula_structural   </span><span class="si">{</span><span class="n">empirical_formula</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;_chemical_formula_sum   &#39;</span><span class="si">{</span><span class="n">formula</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+
+        <span class="c1"># The atoms</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;loop_&#39;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; _atom_site_type_symbol&#39;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; _atom_site_label&#39;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; _atom_site_symmetry_multiplicity&#39;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; _atom_site_fract_x&#39;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; _atom_site_fract_y&#39;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; _atom_site_fract_z&#39;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; _atom_site_occupancy&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Need unique names</span>
+        <span class="k">if</span> <span class="s1">&#39;names&#39;</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">:</span>
+            <span class="n">original_names</span> <span class="o">=</span> <span class="n">atoms</span><span class="o">.</span><span class="n">get_column</span><span class="p">(</span><span class="s1">&#39;names&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">original_names</span> <span class="o">=</span> <span class="n">atoms</span><span class="o">.</span><span class="n">symbols</span>
+
+        <span class="n">names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">original_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">tmp</span><span class="p">:</span>
+                <span class="n">tmp</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">tmp</span><span class="p">[</span><span class="n">name</span><span class="p">]))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">tmp</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="n">names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="n">UVW</span> <span class="o">=</span> <span class="n">atoms</span><span class="o">.</span><span class="n">get_coordinates</span><span class="p">(</span><span class="n">fractionals</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">in_cell</span><span class="o">=</span><span class="s1">&#39;molecule&#39;</span><span class="p">)</span>
+
+        <span class="n">symbols</span> <span class="o">=</span> <span class="n">atoms</span><span class="o">.</span><span class="n">symbols</span>
+        <span class="k">for</span> <span class="n">element</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">uvw</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">symbols</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">UVW</span><span class="p">):</span>
+            <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">uvw</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">element</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">  1  </span><span class="si">{</span><span class="n">u</span><span class="si">:</span><span class="s1">.3f</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">v</span><span class="si">:</span><span class="s1">.3f</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">w</span><span class="si">:</span><span class="s1">.3f</span><span class="si">}</span><span class="s1">  1&#39;</span><span class="p">)</span>
+
+        <span class="c1"># And that is it!</span>
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CIFMixin.from_cif_text"><a class="viewcode-back" href="../../molsystem.html#molsystem.cif.CIFMixin.from_cif_text">[docs]</a>    <span class="k">def</span> <span class="nf">from_cif_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create this configuration from a CIF file..</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        text : str</span>
+<span class="sd">            The text from the CIF file</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">cif</span> <span class="o">=</span> <span class="n">CifFile</span><span class="o">.</span><span class="n">ReadCif</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="n">text</span><span class="p">))</span>
+
+        <span class="n">data_blocks</span> <span class="o">=</span> <span class="p">[</span><span class="o">*</span><span class="n">cif</span><span class="o">.</span><span class="n">keys</span><span class="p">()]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_blocks</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s1">&#39;There are </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">data_blocks</span><span class="p">)</span><span class="si">}</span><span class="s1"> data blocks in the cif file.&#39;</span>
+            <span class="p">)</span>
+        <span class="n">data_block</span> <span class="o">=</span> <span class="n">cif</span><span class="p">[</span><span class="n">data_blocks</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+
+        <span class="c1"># Reset the system</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">periodicity</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coordinate_system</span> <span class="o">=</span> <span class="s1">&#39;fractional&#39;</span>
+
+        <span class="c1"># The cell</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">data_block</span><span class="p">[</span><span class="s1">&#39;_cell_length_a&#39;</span><span class="p">]</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">data_block</span><span class="p">[</span><span class="s1">&#39;_cell_length_b&#39;</span><span class="p">]</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">data_block</span><span class="p">[</span><span class="s1">&#39;_cell_length_c&#39;</span><span class="p">]</span>
+        <span class="n">alpha</span> <span class="o">=</span> <span class="n">data_block</span><span class="p">[</span><span class="s1">&#39;_cell_angle_alpha&#39;</span><span class="p">]</span>
+        <span class="n">beta</span> <span class="o">=</span> <span class="n">data_block</span><span class="p">[</span><span class="s1">&#39;_cell_angle_beta&#39;</span><span class="p">]</span>
+        <span class="n">gamma</span> <span class="o">=</span> <span class="n">data_block</span><span class="p">[</span><span class="s1">&#39;_cell_angle_gamma&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">parameters</span> <span class="o">=</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">)</span>
+
+        <span class="c1"># Add the atoms</span>
+        <span class="c1"># TEMPORARILY lower the symmetry to P1</span>
+        <span class="n">delta</span> <span class="o">=</span> <span class="mf">1.0e-04</span>
+        <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="n">data_block</span><span class="p">[</span><span class="s1">&#39;_atom_site_fract_x&#39;</span><span class="p">],</span>
+            <span class="n">data_block</span><span class="p">[</span><span class="s1">&#39;_atom_site_fract_y&#39;</span><span class="p">],</span>
+            <span class="n">data_block</span><span class="p">[</span><span class="s1">&#39;_atom_site_fract_z&#39;</span><span class="p">],</span>
+            <span class="n">data_block</span><span class="p">[</span><span class="s1">&#39;_atom_site_type_symbol&#39;</span><span class="p">]</span>
+        <span class="p">):</span>  <span class="c1"># yapf: disable</span>
+            <span class="n">xs</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">ys</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">zs</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">symbols</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="c1"># These variables *are* used in the eval below.</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+            <span class="n">z</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">symop</span> <span class="ow">in</span> <span class="n">data_block</span><span class="p">[</span><span class="s1">&#39;_space_group_symop_operation_xyz&#39;</span><span class="p">]:</span>
+                <span class="n">x_eq</span><span class="p">,</span> <span class="n">y_eq</span><span class="p">,</span> <span class="n">z_eq</span> <span class="o">=</span> <span class="n">symop</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+                <span class="n">x_new</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="n">x_eq</span><span class="p">)</span>
+                <span class="n">y_new</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="n">y_eq</span><span class="p">)</span>
+                <span class="n">z_new</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="n">z_eq</span><span class="p">)</span>
+                <span class="c1"># Translate into cell.</span>
+                <span class="n">x_new</span> <span class="o">=</span> <span class="n">x_new</span> <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">x_new</span><span class="p">)</span>
+                <span class="n">y_new</span> <span class="o">=</span> <span class="n">y_new</span> <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">y_new</span><span class="p">)</span>
+                <span class="n">z_new</span> <span class="o">=</span> <span class="n">z_new</span> <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">z_new</span><span class="p">)</span>
+                <span class="c1"># check for almost 1, should be 0</span>
+                <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">x_new</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">delta</span><span class="p">:</span>
+                    <span class="n">x_new</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">y_new</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">delta</span><span class="p">:</span>
+                    <span class="n">y_new</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">z_new</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">delta</span><span class="p">:</span>
+                    <span class="n">z_new</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="n">found</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">for</span> <span class="n">x0</span><span class="p">,</span> <span class="n">y0</span><span class="p">,</span> <span class="n">z0</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">zs</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="p">(</span>
+                        <span class="nb">abs</span><span class="p">(</span><span class="n">x_new</span> <span class="o">-</span> <span class="n">x0</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">delta</span> <span class="ow">and</span> <span class="nb">abs</span><span class="p">(</span><span class="n">y_new</span> <span class="o">-</span> <span class="n">y0</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">delta</span> <span class="ow">and</span>
+                        <span class="nb">abs</span><span class="p">(</span><span class="n">z_new</span> <span class="o">-</span> <span class="n">z0</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">delta</span>
+                    <span class="p">):</span>
+                        <span class="n">found</span> <span class="o">=</span> <span class="kc">True</span>
+                        <span class="k">break</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">found</span><span class="p">:</span>
+                    <span class="n">xs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x_new</span><span class="p">)</span>
+                    <span class="n">ys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y_new</span><span class="p">)</span>
+                    <span class="n">zs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">z_new</span><span class="p">)</span>
+                    <span class="n">symbols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">symbol</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">xs</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">ys</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="n">zs</span><span class="p">,</span> <span class="n">symbol</span><span class="o">=</span><span class="n">symbols</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CIFMixin.to_mmcif_text"><a class="viewcode-back" href="../../molsystem.html#molsystem.cif.CIFMixin.to_mmcif_text">[docs]</a>    <span class="k">def</span> <span class="nf">to_mmcif_text</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create the text of a mmCIF file from this configuration.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        text : str</span>
+<span class="sd">            The text of the file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">atoms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span>
+        <span class="n">bonds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bonds</span>
+
+        <span class="c1"># Get the chemical formula</span>
+        <span class="n">formula</span><span class="p">,</span> <span class="n">empirical_formula</span><span class="p">,</span> <span class="n">Z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">formula</span>
+
+        <span class="n">_id</span> <span class="o">=</span> <span class="n">empirical_formula</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+        <span class="c1"># And created the file, line-by-line</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;# Generated by MolSSI SEAMM&#39;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;data_</span><span class="si">{</span><span class="n">_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;_chem_comp.name &#39;</span><span class="si">{</span><span class="n">formula</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;_chem_comp.id &#39;</span><span class="si">{</span><span class="n">_id</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;_chem_comp.formula   &#39;</span><span class="si">{</span><span class="n">formula</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Cell information</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">periodicity</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">cell</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cell</span>
+            <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span> <span class="o">=</span> <span class="n">cell</span><span class="o">.</span><span class="n">parameters</span>
+            <span class="n">volume</span> <span class="o">=</span> <span class="n">cell</span><span class="o">.</span><span class="n">volume</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;_symmetry_space_group_name_H-M   &#39;P 1&#39;&quot;</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;_cell_length_a   </span><span class="si">{</span><span class="n">a</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;_cell_length_b   </span><span class="si">{</span><span class="n">b</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;_cell_length_c   </span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;_cell_angle_alpha   </span><span class="si">{</span><span class="n">alpha</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;_cell_angle_beta    </span><span class="si">{</span><span class="n">beta</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;_cell_angle_gamma   </span><span class="si">{</span><span class="n">gamma</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;_symmetry_Int_Tables_number   1&#39;</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;_cell_volume   </span><span class="si">{</span><span class="n">volume</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;_cell_formula_units_Z   </span><span class="si">{</span><span class="n">Z</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;loop_&#39;</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; _symmetry_equiv_pos_site_id&#39;</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; _symmetry_equiv_pos_as_xyz&#39;</span><span class="p">)</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;  1  &#39;x, y, z&#39;&quot;</span><span class="p">)</span>
+
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;_chemical_formula_structural   &#39;</span><span class="si">{</span><span class="n">empirical_formula</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;_chemical_formula_sum   &#39;</span><span class="si">{</span><span class="n">formula</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+
+        <span class="c1"># The atoms</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;loop_&#39;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; _chem_comp_atom.comp_id&#39;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; _chem_comp_atom.atom_id&#39;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; _chem_comp_atom.type_symbol&#39;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; _chem_comp_atom.model_Cartn_x&#39;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; _chem_comp_atom.model_Cartn_y&#39;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; _chem_comp_atom.model_Cartn_z&#39;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; _chem_comp_atom.pdbx_model_Cartn_x_ideal&#39;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; _chem_comp_atom.pdbx_model_Cartn_y_ideal&#39;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; _chem_comp_atom.pdbx_model_Cartn_z_ideal&#39;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; _chem_comp_atom.pdbx_component_comp_id&#39;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; _chem_comp_atom.pdbx_residue_numbering&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Need unique names</span>
+        <span class="k">if</span> <span class="s1">&#39;names&#39;</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">:</span>
+            <span class="n">original_names</span> <span class="o">=</span> <span class="n">atoms</span><span class="o">.</span><span class="n">get_column</span><span class="p">(</span><span class="s1">&#39;names&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">original_names</span> <span class="o">=</span> <span class="n">atoms</span><span class="o">.</span><span class="n">symbols</span>
+
+        <span class="n">names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">original_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">tmp</span><span class="p">:</span>
+                <span class="n">tmp</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">tmp</span><span class="p">[</span><span class="n">name</span><span class="p">]))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">tmp</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="n">names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="n">XYZ</span> <span class="o">=</span> <span class="n">atoms</span><span class="o">.</span><span class="n">get_coordinates</span><span class="p">(</span><span class="n">in_cell</span><span class="o">=</span><span class="s1">&#39;molecule&#39;</span><span class="p">)</span>
+        <span class="n">XYZa</span> <span class="o">=</span> <span class="n">atoms</span><span class="o">.</span><span class="n">get_coordinates</span><span class="p">(</span><span class="n">fractionals</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="n">symbols</span> <span class="o">=</span> <span class="n">atoms</span><span class="o">.</span><span class="n">symbols</span>
+        <span class="k">for</span> <span class="n">element</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">xyza</span><span class="p">,</span> <span class="n">xyz</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">symbols</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">XYZa</span><span class="p">,</span> <span class="n">XYZ</span><span class="p">):</span>
+            <span class="n">xa</span><span class="p">,</span> <span class="n">ya</span><span class="p">,</span> <span class="n">za</span> <span class="o">=</span> <span class="n">xyza</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">xyz</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s1">&#39;MOL1 </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">element</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">xa</span><span class="si">:</span><span class="s1">.3f</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">ya</span><span class="si">:</span><span class="s1">.3f</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">za</span><span class="si">:</span><span class="s1">.3f</span><span class="si">}</span><span class="s1"> &#39;</span>
+                <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">x</span><span class="si">:</span><span class="s1">.3f</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">y</span><span class="si">:</span><span class="s1">.3f</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">z</span><span class="si">:</span><span class="s1">.3f</span><span class="si">}</span><span class="s1"> HET 1&#39;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># The bonds</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;loop_&#39;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; _chem_comp_bond.comp_id&#39;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; _chem_comp_bond.atom_id_1&#39;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; _chem_comp_bond.atom_id_2&#39;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39; _chem_comp_bond.value_order&#39;</span><span class="p">)</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="p">{</span><span class="n">j</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">atoms</span><span class="o">.</span><span class="n">ids</span><span class="p">)}</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">bonds</span><span class="o">.</span><span class="n">bonds</span><span class="p">():</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="n">index</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">]]</span>
+            <span class="n">j</span> <span class="o">=</span> <span class="n">index</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;j&#39;</span><span class="p">]]</span>
+            <span class="n">order</span> <span class="o">=</span> <span class="n">bond_order</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;bondorder&#39;</span><span class="p">]]</span>
+            <span class="n">nm1</span> <span class="o">=</span> <span class="n">names</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">nm2</span> <span class="o">=</span> <span class="n">names</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;MOL1 </span><span class="si">{</span><span class="n">nm1</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">nm2</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">order</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="c1"># And that is it!</span>
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CIFMixin.from_mmcif_text"><a class="viewcode-back" href="../../molsystem.html#molsystem.cif.CIFMixin.from_mmcif_text">[docs]</a>    <span class="k">def</span> <span class="nf">from_mmcif_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create this configuration from an MMCIF file..</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        text : str</span>
+<span class="sd">            The text from the MMCIF file</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        This can be called from a `SystemDB`, `_System` or `_Configuration`</span>
+<span class="sd">        object. The behavior and errors differ depending on what type of object</span>
+<span class="sd">        is calling it:</span>
+
+<span class="sd">            `SystemDB`</span>
+
+<span class="sd">            When called from a `_System` object, a new `_System` will be</span>
+<span class="sd">            created for each datablock in the CIF data, and a configuration</span>
+<span class="sd">            will be created to hold the structure, unless their is an NMR</span>
+<span class="sd">            ensemble, in which case each structure in the ensemble will be</span>
+<span class="sd">            placed in a different configuration.</span>
+
+<span class="sd">            `_System`</span>
+
+<span class="sd">            In this case it is an error if there is more than one datablock.</span>
+<span class="sd">            A new configuration will be created with the structure in the CIF</span>
+<span class="sd">            datablock, unless the CIF data contains an NMR ensemble, in which</span>
+<span class="sd">            case a configuration will be added for each conformer.</span>
+
+<span class="sd">            `_Configuration`</span>
+
+<span class="sd">            It is an error if there is more than one datablock in the CIF data.</span>
+<span class="sd">            The configuration will be cleared and the structure from CIF data</span>
+<span class="sd">            inserted into it. If there is an NMR ensemble in the datablock, and</span>
+<span class="sd">            the representative conformer is identified, it will be loaded into</span>
+<span class="sd">            the configuration. Otherwise an error will be raised.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># What type of object is this?</span>
+        <span class="k">if</span> <span class="s1">&#39;SystemDB&#39;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)):</span>
+            <span class="n">my_class</span> <span class="o">=</span> <span class="s1">&#39;SystemDB&#39;</span>
+        <span class="k">elif</span> <span class="s1">&#39;_System&#39;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)):</span>
+            <span class="n">my_class</span> <span class="o">=</span> <span class="s1">&#39;System&#39;</span>
+        <span class="k">elif</span> <span class="s1">&#39;_Configuration&#39;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)):</span>
+            <span class="n">my_class</span> <span class="o">=</span> <span class="s1">&#39;Configuration&#39;</span>
+
+        <span class="n">cif</span> <span class="o">=</span> <span class="n">CifFile</span><span class="o">.</span><span class="n">ReadCif</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="n">text</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">my_class</span> <span class="o">!=</span> <span class="s1">&#39;SystemDB&#39;</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">cif</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s1">&#39;There are </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">cif</span><span class="p">)</span><span class="si">}</span><span class="s1"> data blocks in the mmcif file.&#39;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Loop over the datablocks, processing as we go.</span>
+        <span class="n">systems</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">configurations</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">cif</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="c1"># Check the sanity of the input</span>
+            <span class="n">coordinate_system</span> <span class="o">=</span> <span class="s1">&#39;Cartesian&#39;</span>
+            <span class="k">if</span> <span class="s1">&#39;_atom_site.id&#39;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                <span class="k">if</span> <span class="s1">&#39;_chem_comp_atom.atom_id&#39;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Have both atom_site and chem_comp atoms&#39;</span><span class="p">)</span>
+
+                <span class="c1"># Fractional or Cartesian coordinates?</span>
+                <span class="k">if</span> <span class="s1">&#39;_atom_site.fract_x&#39;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                    <span class="n">coordinate_system</span> <span class="o">=</span> <span class="s1">&#39;fractional&#39;</span>
+                <span class="k">elif</span> <span class="s1">&#39;_atom_site.Cartn_x&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                        <span class="s2">&quot;Couldn&#39;t find coordinates in atom_site data&quot;</span>
+                    <span class="p">)</span>
+                <span class="k">elif</span> <span class="s1">&#39;_chem_comp_atom.atom_id&#39;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="s1">&#39;_chem_comp_atom.model_Cartn_x&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                            <span class="s2">&quot;Couldn&#39;t find coordinates in chem_comp_atom data&quot;</span>
+                        <span class="p">)</span>
+
+            <span class="c1"># Get the name of the system/configuration</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span>
+                <span class="s1">&#39;_entry.id&#39;</span><span class="p">,</span> <span class="s1">&#39;_chem_comp.id&#39;</span><span class="p">,</span> <span class="s1">&#39;_chem_comp.name&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;_chem_comp.three_letter_code&#39;</span>
+            <span class="p">]:</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+                    <span class="k">break</span>
+
+            <span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;_pdbx_nmr_ensemble.conformers_submitted_total_number&#39;</span>
+            <span class="n">ensemble</span> <span class="o">=</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">data</span>
+            <span class="k">if</span> <span class="n">ensemble</span><span class="p">:</span>
+                <span class="n">n_ensemble</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;_pdbx_nmr_representative.conformer_id&#39;</span>
+                <span class="n">configuration_name</span> <span class="o">=</span> <span class="s1">&#39;model_1&#39;</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                    <span class="n">representative</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="n">representative</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="n">configuration_name</span> <span class="o">==</span> <span class="s1">&#39;representative&#39;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">representative</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">configuration_name</span> <span class="o">=</span> <span class="n">name</span>
+            <span class="k">if</span> <span class="n">my_class</span> <span class="o">==</span> <span class="s1">&#39;SystemDB&#39;</span><span class="p">:</span>
+                <span class="n">system</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_system</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+                <span class="n">systems</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">system</span><span class="p">)</span>
+                <span class="n">configuration</span> <span class="o">=</span> <span class="n">system</span><span class="o">.</span><span class="n">create_configuration</span><span class="p">(</span><span class="n">configuration_name</span><span class="p">)</span>
+                <span class="n">configurations</span><span class="p">[</span><span class="n">system</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">configuration</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="n">my_class</span> <span class="o">==</span> <span class="s1">&#39;System&#39;</span><span class="p">:</span>
+                <span class="n">system</span> <span class="o">=</span> <span class="bp">self</span>
+                <span class="n">configuration</span> <span class="o">=</span> <span class="n">system</span><span class="o">.</span><span class="n">create_configuration</span><span class="p">(</span><span class="n">configuration_name</span><span class="p">)</span>
+                <span class="n">configurations</span><span class="p">[</span><span class="n">system</span><span class="o">.</span><span class="n">id</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">configuration</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">configuration</span> <span class="o">=</span> <span class="bp">self</span>
+                <span class="c1"># Reset the configuration</span>
+                <span class="n">configuration</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+                <span class="n">configuration</span><span class="o">.</span><span class="n">periodicity</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">configuration</span><span class="o">.</span><span class="n">coordinate_system</span> <span class="o">=</span> <span class="s1">&#39;Cartesian&#39;</span>
+                <span class="n">configuration</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">configuration_name</span>
+
+            <span class="c1"># Add the atoms</span>
+            <span class="n">atoms</span> <span class="o">=</span> <span class="n">configuration</span><span class="o">.</span><span class="n">atoms</span>
+            <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+
+            <span class="c1"># Get the data from the CIF file, creating columns if needed.</span>
+            <span class="k">for</span> <span class="n">cif_key</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">_type</span><span class="p">,</span> <span class="n">default</span> <span class="ow">in</span> <span class="p">[</span>
+                <span class="p">(</span><span class="s1">&#39;_chem_comp_atom.atom_id&#39;</span><span class="p">,</span> <span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;str&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;_chem_comp_atom.alt_atom_id&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;str&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;_chem_comp_atom.type_symbol&#39;</span><span class="p">,</span> <span class="s1">&#39;symbol&#39;</span><span class="p">,</span> <span class="s1">&#39;str&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;_chem_comp_atom.model_Cartn_x&#39;</span><span class="p">,</span> <span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;float&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;_chem_comp_atom.model_Cartn_y&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;float&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;_chem_comp_atom.model_Cartn_z&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="s1">&#39;float&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;_chem_comp_atom.charge&#39;</span><span class="p">,</span> <span class="s1">&#39;formal_charge&#39;</span><span class="p">,</span> <span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;_chem_comp_atom.pdbx_align&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;_chem_comp_atom.pdbx_aromatic_flag&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;bool&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+                <span class="p">(</span>
+                    <span class="s1">&#39;_chem_comp_atom.pdbx_leaving_atom_flag&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;bool&#39;</span><span class="p">,</span>
+                    <span class="kc">False</span>
+                <span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;_chem_comp_atom.pdbx_stereo_config&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;bool&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+                <span class="p">(</span>
+                    <span class="s1">&#39;_chem_comp_atom.pdbx_component_atom_id&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;bool&#39;</span><span class="p">,</span>
+                    <span class="kc">False</span>
+                <span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;_atom_site.group_PDB&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;str&#39;</span><span class="p">,</span> <span class="s1">&#39;HETATOM&#39;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;_atom_site.id&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;str&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;_atom_site.type_symbol&#39;</span><span class="p">,</span> <span class="s1">&#39;symbol&#39;</span><span class="p">,</span> <span class="s1">&#39;str&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;_atom_site.label_atom_id&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;str&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;_atom_site.label_alt_id&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;str&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;_atom_site.label_comp_id&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;str&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;_atom_site.label_asym_id&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;str&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;_atom_site.label_entity_id&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;str&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;_atom_site.label_seq_id&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;_atom_site.pdbx_PDB_ins_code&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;str&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;_atom_site.pdbx_PDB_model_num&#39;</span><span class="p">,</span> <span class="s1">&#39;ignore&#39;</span><span class="p">,</span> <span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;_atom_site.Cartn_x&#39;</span><span class="p">,</span> <span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;float&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;_atom_site.Cartn_y&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;float&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;_atom_site.Cartn_z&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="s1">&#39;float&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;_atom_site.fract_x&#39;</span><span class="p">,</span> <span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;float&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;_atom_site.fract_y&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;float&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;_atom_site.fract_z&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="s1">&#39;float&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;_atom_site.occupancy&#39;</span><span class="p">,</span> <span class="s1">&#39;occupancy&#39;</span><span class="p">,</span> <span class="s1">&#39;float&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;_atom_site.B_iso_or_equiv&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;float&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;_atom_site.pdbx_formal_charge&#39;</span><span class="p">,</span> <span class="s1">&#39;formal_charge&#39;</span><span class="p">,</span> <span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="p">]:</span>
+                <span class="k">if</span> <span class="n">cif_key</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">key</span> <span class="o">=</span> <span class="n">cif_key</span>
+                    <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;ignore&#39;</span><span class="p">:</span>
+                        <span class="n">key</span> <span class="o">=</span> <span class="n">cif_key</span>
+                    <span class="k">elif</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">atoms</span> <span class="ow">and</span> <span class="n">key</span> <span class="o">!=</span> <span class="s1">&#39;symbol&#39;</span><span class="p">:</span>
+                        <span class="n">atoms</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">_type</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">default</span><span class="p">)</span>
+
+                    <span class="k">if</span> <span class="n">_type</span> <span class="o">==</span> <span class="s1">&#39;bool&#39;</span><span class="p">:</span>
+                        <span class="n">kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                            <span class="kc">None</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">in</span> <span class="s1">&#39;.?&#39;</span> <span class="k">else</span> <span class="n">x</span> <span class="o">==</span> <span class="s1">&#39;N&#39;</span>
+                            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="n">cif_key</span><span class="p">]</span>
+                        <span class="p">]</span>
+                    <span class="k">elif</span> <span class="n">_type</span> <span class="o">==</span> <span class="s1">&#39;int&#39;</span><span class="p">:</span>
+                        <span class="n">kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                            <span class="kc">None</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">in</span> <span class="s1">&#39;.?&#39;</span> <span class="k">else</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+                            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="n">cif_key</span><span class="p">]</span>
+                        <span class="p">]</span>
+                    <span class="k">elif</span> <span class="n">_type</span> <span class="o">==</span> <span class="s1">&#39;float&#39;</span><span class="p">:</span>
+                        <span class="n">kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                            <span class="kc">None</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">in</span> <span class="s1">&#39;.?&#39;</span> <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+                            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="n">cif_key</span><span class="p">]</span>
+                        <span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                            <span class="kc">None</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">in</span> <span class="s1">&#39;.?&#39;</span> <span class="k">else</span> <span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="n">cif_key</span><span class="p">]</span>
+                        <span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">ensemble</span><span class="p">:</span>
+                <span class="k">if</span> <span class="s1">&#39;_atom_site.pdbx_PDB_model_num&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;Is an ensemble but no model numbers.&quot;</span><span class="p">)</span>
+                <span class="n">model_num</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;_atom_site.pdbx_PDB_model_num&#39;</span><span class="p">)</span>
+                <span class="n">first</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">last</span> <span class="o">=</span> <span class="n">first</span>
+                <span class="n">model</span> <span class="o">=</span> <span class="n">model_num</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">model_num</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">model</span><span class="p">:</span>
+                        <span class="n">last</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">atoms</span> <span class="o">=</span> <span class="n">configuration</span><span class="o">.</span><span class="n">atoms</span>
+                        <span class="n">model_args</span> <span class="o">=</span> <span class="p">{</span>
+                            <span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="p">[</span><span class="n">first</span><span class="p">:</span><span class="n">last</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                        <span class="p">}</span>
+                        <span class="n">atom_ids</span> <span class="o">=</span> <span class="n">atoms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="o">**</span><span class="n">model_args</span><span class="p">)</span>
+
+                        <span class="c1"># Make the next configuration and reset pointers</span>
+                        <span class="n">model</span> <span class="o">=</span> <span class="n">i</span>
+                        <span class="n">first</span> <span class="o">=</span> <span class="n">last</span>
+                        <span class="n">last</span> <span class="o">+=</span> <span class="mi">1</span>
+                        <span class="k">if</span> <span class="n">model</span> <span class="o">==</span> <span class="n">representative</span><span class="p">:</span>
+                            <span class="n">configuration_name</span> <span class="o">=</span> <span class="s1">&#39;representative&#39;</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">configuration_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;model_</span><span class="si">{</span><span class="n">model</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="n">configuration</span> <span class="o">=</span> <span class="n">system</span><span class="o">.</span><span class="n">create_configuration</span><span class="p">(</span>
+                            <span class="n">configuration_name</span>
+                        <span class="p">)</span>
+                        <span class="n">configurations</span><span class="p">[</span><span class="n">system</span><span class="o">.</span><span class="n">id</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">configuration</span><span class="p">)</span>
+                <span class="c1"># Put in the last model</span>
+                <span class="n">atoms</span> <span class="o">=</span> <span class="n">configuration</span><span class="o">.</span><span class="n">atoms</span>
+                <span class="n">model_args</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="p">[</span><span class="n">first</span><span class="p">:</span><span class="n">last</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+                <span class="n">atom_ids</span> <span class="o">=</span> <span class="n">atoms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="o">**</span><span class="n">model_args</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">model</span> <span class="o">!=</span> <span class="n">n_ensemble</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;The actual number of models (</span><span class="si">{</span><span class="n">model</span><span class="si">}</span><span class="s2">) does not &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;match the claimed number (</span><span class="si">{</span><span class="n">n_ensemble</span><span class="si">}</span><span class="s2">).&quot;</span>
+                    <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">coordinate_system</span> <span class="o">!=</span> <span class="s1">&#39;Cartesian&#39;</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Can&#39;t handle fractional coords&quot;</span><span class="p">)</span>
+
+                <span class="n">atom_ids</span> <span class="o">=</span> <span class="n">atoms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="s1">&#39;_chem_comp_bond.atom_id_1&#39;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                    <span class="c1"># Prepare for the bonds, which are labeled by atom name</span>
+                    <span class="n">atom_id</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="n">name</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">atom_ids</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">])</span>
+                    <span class="p">}</span>
+
+                    <span class="c1"># And the bonds</span>
+                    <span class="n">bonds</span> <span class="o">=</span> <span class="n">configuration</span><span class="o">.</span><span class="n">bonds</span>
+                    <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+                    <span class="k">for</span> <span class="n">cif_key</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">_type</span><span class="p">,</span> <span class="n">default</span> <span class="ow">in</span> <span class="p">[</span>
+                        <span class="p">(</span><span class="s1">&#39;_chem_comp_bond.atom_id_1&#39;</span><span class="p">,</span> <span class="s1">&#39;i&#39;</span><span class="p">,</span> <span class="s1">&#39;str&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s1">&#39;_chem_comp_bond.atom_id_2&#39;</span><span class="p">,</span> <span class="s1">&#39;j&#39;</span><span class="p">,</span> <span class="s1">&#39;str&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s1">&#39;_chem_comp_bond.value_order&#39;</span><span class="p">,</span> <span class="s1">&#39;bondorder&#39;</span><span class="p">,</span> <span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s1">&#39;_chem_comp_bond.comp_id&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;str&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s1">&#39;_chem_comp_bond.aromatic_flag&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;bool&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s1">&#39;_chem_comp_bond.stereo_flag&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;str&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                        <span class="p">(</span><span class="s1">&#39;_chem_comp_bond.value_dist&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;float&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                        <span class="p">(</span>
+                            <span class="s1">&#39;_chem_comp_bond.value_dist_esd&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;float&#39;</span><span class="p">,</span>
+                            <span class="kc">None</span>
+                        <span class="p">)</span>
+                    <span class="p">]:</span>
+                        <span class="k">if</span> <span class="n">cif_key</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                                <span class="n">key</span> <span class="o">=</span> <span class="n">cif_key</span>
+                            <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;ignore&#39;</span><span class="p">:</span>
+                                <span class="n">key</span> <span class="o">=</span> <span class="n">cif_key</span>
+                            <span class="k">elif</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">bonds</span><span class="p">:</span>
+                                <span class="n">bonds</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span>
+                                    <span class="n">key</span><span class="p">,</span> <span class="n">_type</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">default</span>
+                                <span class="p">)</span>
+
+                            <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;i&#39;</span> <span class="ow">or</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;j&#39;</span><span class="p">:</span>
+                                <span class="n">kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                                    <span class="n">atom_id</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="n">cif_key</span><span class="p">]</span>
+                                <span class="p">]</span>
+                            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;bondorder&#39;</span><span class="p">:</span>
+                                <span class="n">kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                                    <span class="n">to_bond_order</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="n">cif_key</span><span class="p">]</span>
+                                <span class="p">]</span>
+                            <span class="k">elif</span> <span class="n">_type</span> <span class="o">==</span> <span class="s1">&#39;bool&#39;</span><span class="p">:</span>
+                                <span class="n">kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                                    <span class="kc">None</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">in</span> <span class="s1">&#39;.?&#39;</span> <span class="k">else</span> <span class="n">x</span> <span class="o">==</span> <span class="s1">&#39;N&#39;</span>
+                                    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="n">cif_key</span><span class="p">]</span>
+                                <span class="p">]</span>
+                            <span class="k">elif</span> <span class="n">_type</span> <span class="o">==</span> <span class="s1">&#39;int&#39;</span><span class="p">:</span>
+                                <span class="n">kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                                    <span class="kc">None</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">in</span> <span class="s1">&#39;.?&#39;</span> <span class="k">else</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+                                    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="n">cif_key</span><span class="p">]</span>
+                                <span class="p">]</span>
+                            <span class="k">elif</span> <span class="n">_type</span> <span class="o">==</span> <span class="s1">&#39;float&#39;</span><span class="p">:</span>
+                                <span class="n">kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                                    <span class="kc">None</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">in</span> <span class="s1">&#39;.?&#39;</span> <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+                                    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="n">cif_key</span><span class="p">]</span>
+                                <span class="p">]</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+                                    <span class="kc">None</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">in</span> <span class="s1">&#39;.?&#39;</span> <span class="k">else</span> <span class="n">x</span>
+                                    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="n">cif_key</span><span class="p">]</span>
+                                <span class="p">]</span>
+
+                    <span class="n">bonds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">systems</span><span class="p">,</span> <span class="n">configurations</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+
+    </p>
+  </div>
+
+<p>
+<div class="row">
+  <div class="column_left">
+    <a href="https://molssi.org/" target="_blank" title="Go to MolSSI in a new tab">
+      <img src="/_images/MolSSI.jpg" alt="The MolSSI" style="border:0;">
+    </a>
+  </div>
+  <div class="column">
+    &copy; Copyright 2020, the Molecular Sciences Software Institute,
+    which receives funding from the National Science Foundation under award ACI-1547580
+  </div>
+  <div class="column_right">
+    <a href="https://nsf.gov/" target="_blank" title="Go to the NSF in a new tab">
+      <img src="/_images/NSF_4-Color_bitmap_Logo.png" alt="The NSF" style="border:0;">
+    </a>
+  </div>
+</div>
+
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

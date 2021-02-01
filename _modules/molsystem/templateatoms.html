@@ -1,0 +1,358 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>molsystem.templateatoms &#8212; MolSystem 2020.12.5 documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
+    
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">MolSystem 2020.12.5 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">molsystem.templateatoms</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for molsystem.templateatoms</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="sd">&quot;&quot;&quot;A dictionary-like object for holding atoms for the templates</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">zip_longest</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">TypeVar</span>
+
+<span class="kn">from</span> <span class="nn">molsystem.atoms</span> <span class="kn">import</span> <span class="n">_Atoms</span> <span class="k">as</span> <span class="n">Atoms</span>
+<span class="kn">from</span> <span class="nn">molsystem.column</span> <span class="kn">import</span> <span class="n">_Column</span> <span class="k">as</span> <span class="n">Column</span>
+<span class="kn">from</span> <span class="nn">molsystem.table</span> <span class="kn">import</span> <span class="n">_Table</span> <span class="k">as</span> <span class="n">Table</span>
+
+<span class="n">System_tp</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;System_tp&quot;</span><span class="p">,</span> <span class="s2">&quot;System&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="n">Atoms_tp</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;Atoms_tp&quot;</span><span class="p">,</span> <span class="s2">&quot;_Atoms&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="grouped"><a class="viewcode-back" href="../../molsystem.html#molsystem.templateatoms.grouped">[docs]</a><span class="k">def</span> <span class="nf">grouped</span><span class="p">(</span><span class="n">iterable</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+    <span class="s2">&quot;s -&gt; (s0,s1,s2,...sn-1), (sn,sn+1,sn+2,...s2n-1), (s2n,...s3n-1), ...&quot;</span>
+    <span class="k">return</span> <span class="n">zip_longest</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="nb">iter</span><span class="p">(</span><span class="n">iterable</span><span class="p">)]</span> <span class="o">*</span> <span class="n">n</span><span class="p">)</span></div>
+
+
+<span class="k">class</span> <span class="nc">_Templateatoms</span><span class="p">(</span><span class="n">Atoms</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The Atoms class holds arrays of attributes describing atoms</span>
+
+<span class="sd">    This is a bit complicated due to the separation of the actual atoms and the</span>
+<span class="sd">    coordinates, which depend on the configuration. Also, the list of atoms can</span>
+<span class="sd">    itself be time-dependent, and is controlled by the subset &#39;all&#39;.</span>
+
+<span class="sd">    Atoms can be added (&#39;append&#39;) or removed (&#39;delete&#39;).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">system</span><span class="p">:</span> <span class="n">System_tp</span><span class="p">,</span>
+        <span class="n">atom_tablename</span><span class="o">=</span><span class="s1">&#39;templateatom&#39;</span><span class="p">,</span>
+        <span class="n">coordinates_tablename</span><span class="o">=</span><span class="s1">&#39;templatecoordinates&#39;</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_system</span> <span class="o">=</span> <span class="n">system</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_atom_tablename</span> <span class="o">=</span> <span class="n">atom_tablename</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates_tablename</span> <span class="o">=</span> <span class="n">coordinates_tablename</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_atom_table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">system</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atom_tablename</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates_table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">system</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates_tablename</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_templates</span> <span class="o">=</span> <span class="n">system</span><span class="p">[</span><span class="s1">&#39;template&#39;</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Allow [] to access the data!&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atom_table</span><span class="o">.</span><span class="n">attributes</span><span class="p">:</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;WHERE template = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">current_template</span><span class="si">}</span><span class="s1">&#39;</span>
+            <span class="k">return</span> <span class="n">Column</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_atom_table</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">sql</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates_table</span><span class="o">.</span><span class="n">attributes</span><span class="p">:</span>
+            <span class="n">where</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;WHERE templateatom in (&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;     SELECT id FROM </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_atom_tablename</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;      WHERE template = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">current_template</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;)&quot;</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">Column</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_coordinates_table</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">where</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&#39; not in template atoms&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">current_template</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The current template in use.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_templates</span><span class="o">.</span><span class="n">current_template</span>
+
+    <span class="nd">@current_template</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">current_template</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_templates</span><span class="o">.</span><span class="n">current_template</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">n_atoms</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;The number of atoms *in the current* template.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;SELECT COUNT(*) FROM </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_atom_tablename</span><span class="si">}</span><span class="s2"> WHERE template = ?&quot;</span><span class="p">,</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">current_template</span><span class="p">,)</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;The definitions of the attributes.</span>
+<span class="sd">        Combine the attributes of the atom and coordinates tables to</span>
+<span class="sd">        make it look like a single larger table.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atom_table</span><span class="o">.</span><span class="n">attributes</span>
+
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates_table</span><span class="o">.</span><span class="n">attributes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="o">!=</span> <span class="s1">&#39;templateatom&#39;</span><span class="p">:</span>  <span class="c1"># ignore foreign key linking tables</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">coordinate_system</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The type of coordinates: &#39;fractional&#39; or &#39;Cartesian&#39;&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s1">&#39;Cartesian&#39;</span>
+
+    <span class="nd">@coordinate_system</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">coordinate_system</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;Templates can only use Cartesian coordinates.&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">append</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Append one or more atoms</span>
+
+<span class="sd">        The keys give the field for the data. If an existing field is not</span>
+<span class="sd">        mentioned, then the default value is used, unless the default is None,</span>
+<span class="sd">        in which case an error is thrown. It is an error if there is not a</span>
+<span class="sd">        field corrresponding to a key.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Need to handle the elements specially. Can give atomic numbers,</span>
+        <span class="c1"># or symbols. By construction the references to elements are identical</span>
+        <span class="c1"># to their atomic numbers.</span>
+
+        <span class="k">if</span> <span class="s1">&#39;symbol&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">symbols</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;symbol&#39;</span><span class="p">)</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;atno&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_atnos</span><span class="p">(</span><span class="n">symbols</span><span class="p">)</span>
+
+        <span class="c1"># How many new rows there are</span>
+        <span class="n">n_rows</span><span class="p">,</span> <span class="n">lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_n_rows</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">n</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">n_rows</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">n_rows</span> <span class="o">!=</span> <span class="n">n</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Requested number of template atoms (</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">) is not &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;compatible with the length of the data (</span><span class="si">{</span><span class="n">n_rows</span><span class="si">}</span><span class="s2">).&quot;</span>
+                <span class="p">)</span>
+            <span class="n">n_rows</span> <span class="o">=</span> <span class="n">n</span>
+
+        <span class="c1"># Fill in the atom table</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atom_table</span><span class="o">.</span><span class="n">attributes</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">column</span> <span class="o">!=</span> <span class="s1">&#39;id&#39;</span> <span class="ow">and</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                <span class="n">data</span><span class="p">[</span><span class="n">column</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">column</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s1">&#39;template&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="s1">&#39;template&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_template</span>
+
+        <span class="n">ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atom_table</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="n">n_rows</span><span class="p">,</span> <span class="o">**</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="c1"># Now append to the coordinates table, but only if needed.</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates_table</span><span class="o">.</span><span class="n">attributes</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">column</span> <span class="o">!=</span> <span class="s1">&#39;templateatom&#39;</span> <span class="ow">and</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                <span class="n">data</span><span class="p">[</span><span class="n">column</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">column</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="s1">&#39;templateatom&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ids</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates_table</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="n">n_rows</span><span class="p">,</span> <span class="o">**</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ids</span>
+
+    <span class="k">def</span> <span class="nf">atomic_numbers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">template</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;The atomic numbers of the atoms in a template.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        template : int = None</span>
+<span class="sd">            Which template, defaulting to the current template.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ids : [int]</span>
+<span class="sd">            The ids of the atoms in the template.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">template</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">template</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_template</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;SELECT atno FROM </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_atom_tablename</span><span class="si">}</span><span class="s2"> WHERE template = ?&quot;</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">template</span><span class="p">,)</span>
+            <span class="p">)</span>
+        <span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">atom_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">template</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;The ids of the atoms in a template.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        template : int = None</span>
+<span class="sd">            Which template, defaulting to the current template.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ids : [int]</span>
+<span class="sd">            The ids of the atoms in the template.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">template</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">template</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_template</span>
+        <span class="k">return</span> <span class="p">[</span>
+            <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;SELECT id FROM </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_atom_tablename</span><span class="si">}</span><span class="s2"> WHERE template = ?&quot;</span><span class="p">,</span>
+                <span class="p">(</span><span class="n">template</span><span class="p">,)</span>
+            <span class="p">)</span>
+        <span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">atoms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get an iterator over atoms in the template.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        args : str, int or float</span>
+<span class="sd">            SQL restrictions for a WHERE statement, each argument being</span>
+<span class="sd">            one word, e.g. &quot;atno&quot; &quot;=&quot; 5</span>
+<span class="sd">        template : int = None</span>
+<span class="sd">            Which template, defaulting to the current template.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        SQLite3.Cursor :</span>
+<span class="sd">            The cursor containing the result.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">atom_tbl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atom_tablename</span>
+        <span class="n">coord_tbl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates_tablename</span>
+        <span class="n">atom_columns</span> <span class="o">=</span> <span class="p">[</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_atom_table</span><span class="o">.</span><span class="n">attributes</span><span class="p">]</span>
+        <span class="n">coord_columns</span> <span class="o">=</span> <span class="p">[</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_coordinates_table</span><span class="o">.</span><span class="n">attributes</span><span class="p">]</span>
+        <span class="n">coord_columns</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s1">&#39;templateatom&#39;</span><span class="p">)</span>
+
+        <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">atom_tbl</span><span class="si">}</span><span class="s1">.</span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">atom_columns</span><span class="p">]</span>
+        <span class="n">columns</span> <span class="o">+=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">coord_tbl</span><span class="si">}</span><span class="s1">.</span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">coord_columns</span><span class="p">]</span>
+        <span class="n">column_defs</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">template</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">template</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_template</span>
+
+        <span class="n">sql</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s1">&#39;SELECT </span><span class="si">{</span><span class="n">column_defs</span><span class="si">}</span><span class="s1"> FROM </span><span class="si">{</span><span class="n">atom_tbl</span><span class="si">}</span><span class="s1">, </span><span class="si">{</span><span class="n">coord_tbl</span><span class="si">}</span><span class="s1">&#39;</span>
+            <span class="sa">f</span><span class="s1">&#39; WHERE </span><span class="si">{</span><span class="n">coord_tbl</span><span class="si">}</span><span class="s1">.templateatom = </span><span class="si">{</span><span class="n">atom_tbl</span><span class="si">}</span><span class="s1">.id&#39;</span>
+            <span class="sa">f</span><span class="s1">&#39;   AND </span><span class="si">{</span><span class="n">atom_tbl</span><span class="si">}</span><span class="s1">.template = ?&#39;</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="p">(</span><span class="n">template</span><span class="p">,))</span>
+
+        <span class="n">parameters</span> <span class="o">=</span> <span class="p">[</span><span class="n">template</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">grouped</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">op</span> <span class="o">==</span> <span class="s1">&#39;==&#39;</span><span class="p">:</span>
+                <span class="n">op</span> <span class="o">=</span> <span class="s1">&#39;=&#39;</span>
+            <span class="n">sql</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39; AND &quot;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s1">&quot; </span><span class="si">{</span><span class="n">op</span><span class="si">}</span><span class="s1"> ?&#39;</span>
+            <span class="n">parameters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">parameters</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">remove</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Remove atoms in the template.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        args : str, int or float</span>
+<span class="sd">            SQL restrictions for a WHERE statement, each argument being</span>
+<span class="sd">            one word, e.g. &quot;atno&quot; &quot;=&quot; 5</span>
+<span class="sd">        template : int = None</span>
+<span class="sd">            Which template, defaulting to the current template.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">template</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">template</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_template</span>
+
+        <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;DELETE FROM </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="si">}</span><span class="s1"> WHERE template = ?&#39;</span>
+
+        <span class="n">parameters</span> <span class="o">=</span> <span class="p">[</span><span class="n">template</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">grouped</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">op</span> <span class="o">==</span> <span class="s1">&#39;==&#39;</span><span class="p">:</span>
+                <span class="n">op</span> <span class="o">=</span> <span class="s1">&#39;=&#39;</span>
+            <span class="n">sql</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39; AND &quot;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s1">&quot; </span><span class="si">{</span><span class="n">op</span><span class="si">}</span><span class="s1"> ?&#39;</span>
+            <span class="n">parameters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">parameters</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">MolSystem 2020.12.5 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">molsystem.templateatoms</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2021, Paul Saxe.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.4.3.
+    </div>
+  </body>
+</html>

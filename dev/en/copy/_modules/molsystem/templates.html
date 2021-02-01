@@ -1,0 +1,479 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>molsystem.templates &mdash; MolSystem Step 2020.12.5+21.g1f45da7 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/custom.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> MolSystem Step
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2020.12.5+21.g1f45da7
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../user/index.html">User Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developer/index.html">Developer Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../authors.html">Credits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">History</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://molssi-seamm.github.io">Main SEAMM documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">MolSystem Step</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>molsystem.templates</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for molsystem.templates</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="sd">&quot;&quot;&quot;A dictionary-like object for holding templates</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Sequence</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="kn">from</span> <span class="nn">.table</span> <span class="kn">import</span> <span class="n">_Table</span>
+<span class="kn">from</span> <span class="nn">.template</span> <span class="kn">import</span> <span class="n">_Template</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="_Templates"><a class="viewcode-back" href="../../developer/molsystem.html#molsystem.templates._Templates">[docs]</a><span class="k">class</span> <span class="nc">_Templates</span><span class="p">(</span><span class="n">_Table</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Templates -- examples -- for subsets.</span>
+
+<span class="sd">    A template serves two purposes. First, it provides a named</span>
+<span class="sd">    instance for labeling similar subsets. The name of a template has</span>
+<span class="sd">    two parts, a category and a name, e.g. residue/ala,</span>
+<span class="sd">    molecule/water, or general/group1. This provides a way to group</span>
+<span class="sd">    and identify subsets.</span>
+
+<span class="sd">    Second, the template may optionally point to a configuration of a</span>
+<span class="sd">    system, in which case the atoms in the template configuration are</span>
+<span class="sd">    templates for the atoms in subsets created for the template. This</span>
+<span class="sd">    provides a way to create new molecules or fragments from a</span>
+<span class="sd">    template, or to transfer information from a template into a</span>
+<span class="sd">    configuration. For example, this could be used to transfer</span>
+<span class="sd">    canonical names and atom categories residue templates onto a</span>
+<span class="sd">    protein molecule.</span>
+
+<span class="sd">    This class handles the templates.</span>
+
+<span class="sd">    :meta public:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">system_db</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize the instance.&quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">system_db</span><span class="p">,</span> <span class="n">table</span><span class="o">=</span><span class="s1">&#39;template&#39;</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+
+    <span class="c1"># def __repr__(self):</span>
+    <span class="c1">#     &quot;&quot;&quot;The string representation of this object&quot;&quot;&quot;</span>
+    <span class="c1">#     raise NotImplementedError()</span>
+
+    <span class="c1"># def __str__(self):</span>
+    <span class="c1">#     &quot;&quot;&quot;The pretty string representation of this object&quot;&quot;&quot;</span>
+    <span class="c1">#     raise NotImplementedError()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">categories</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the current categories of templates.&quot;&quot;&quot;</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;SELECT DISTINCT category FROM template ORDER BY category ASC&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">)]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">n_templates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The number of templates.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_rows</span>
+
+<div class="viewcode-block" id="_Templates.create"><a class="viewcode-back" href="../../developer/molsystem.html#molsystem.templates._Templates.create">[docs]</a>    <span class="k">def</span> <span class="nf">create</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="n">category</span><span class="o">=</span><span class="s1">&#39;general&#39;</span><span class="p">,</span>
+        <span class="n">configuration</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">smiles</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create one templates.</span>
+
+<span class="sd">        This is an explicit wrapper of the Table method append, specializing</span>
+<span class="sd">        it for creating one template.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The name of the template/subset. The name-category pair must be</span>
+<span class="sd">            unique.</span>
+<span class="sd">        category : str = &#39;general&#39;</span>
+<span class="sd">            An optional category of template/subset, e.g. &#39;general&#39;, &#39;residue&#39;,</span>
+<span class="sd">            &#39;molecule&#39;</span>
+<span class="sd">        configuration : int or _Configuration = None</span>
+<span class="sd">            An optional template configuration or its id to use.</span>
+<span class="sd">        smiles : bool = True</span>
+<span class="sd">            Create and store the canonical SMILES for full templates.</span>
+<span class="sd">        kwargs : keyword arguments</span>
+<span class="sd">            Other existing attributes and values.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        _template</span>
+<span class="sd">            The created template.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">configuration</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cid</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">configuration</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+                <span class="n">cid</span> <span class="o">=</span> <span class="n">configuration</span>
+                <span class="n">configuration</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="o">.</span><span class="n">get_configuration</span><span class="p">(</span><span class="n">cid</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">cid</span> <span class="o">=</span> <span class="n">configuration</span><span class="o">.</span><span class="n">id</span>
+            <span class="n">canonical_smiles</span> <span class="o">=</span> <span class="n">configuration</span><span class="o">.</span><span class="n">to_smiles</span><span class="p">(</span><span class="n">canonical</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;canonical_smiles&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">canonical_smiles</span>
+
+        <span class="n">tid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">category</span><span class="o">=</span><span class="n">category</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">configuration</span><span class="o">=</span><span class="n">cid</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">_Template</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="p">,</span> <span class="n">tid</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_Templates.create_many"><a class="viewcode-back" href="../../developer/molsystem.html#molsystem.templates._Templates.create_many">[docs]</a>    <span class="k">def</span> <span class="nf">create_many</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="n">category</span><span class="o">=</span><span class="s1">&#39;general&#39;</span><span class="p">,</span>
+        <span class="n">configuration</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">smiles</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create one or more templates.</span>
+
+<span class="sd">        This is an explicit wrapper of the Table method append, specializing</span>
+<span class="sd">        it for templates.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The name of the template/subset. The name-category pair must be</span>
+<span class="sd">            unique.</span>
+<span class="sd">        category : str = &#39;general&#39;</span>
+<span class="sd">            An optional category of template/subset, e.g. &#39;general&#39;, &#39;residue&#39;,</span>
+<span class="sd">            &#39;molecule&#39;</span>
+<span class="sd">        configuration : int or _Configuration = None</span>
+<span class="sd">            An optional template configuration or its id to use.</span>
+<span class="sd">        smiles : bool = True</span>
+<span class="sd">            Create and store the canonical SMILES for full templates.</span>
+<span class="sd">        kwargs : keyword arguments</span>
+<span class="sd">            Other existing attributes and values.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        [_Template]</span>
+<span class="sd">            The created templates.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">configuration</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cids</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cids</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">configuration</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">):</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;canonical_smiles&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">configuration</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+                    <span class="n">cid</span> <span class="o">=</span> <span class="n">configuration</span>
+                    <span class="n">configuration</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="o">.</span><span class="n">get_configuration</span><span class="p">(</span><span class="n">cid</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">cid</span> <span class="o">=</span> <span class="n">configuration</span><span class="o">.</span><span class="n">id</span>
+                <span class="n">canonical_smiles</span> <span class="o">=</span> <span class="n">configuration</span><span class="o">.</span><span class="n">to_smiles</span><span class="p">(</span><span class="n">canonical</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;canonical_smiles&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">canonical_smiles</span><span class="p">)</span>
+                <span class="n">cids</span><span class="o">.</span><span class="n">append</span><span class="p">[</span><span class="n">cid</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">configuration</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+                    <span class="n">cids</span> <span class="o">=</span> <span class="n">configuration</span>
+                    <span class="n">configuration</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="o">.</span><span class="n">get_configuration</span><span class="p">(</span><span class="n">cids</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">cids</span> <span class="o">=</span> <span class="n">configuration</span><span class="o">.</span><span class="n">id</span>
+                <span class="n">canonical_smiles</span> <span class="o">=</span> <span class="n">configuration</span><span class="o">.</span><span class="n">to_smiles</span><span class="p">(</span><span class="n">canonical</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;canonical_smiles&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">canonical_smiles</span>
+
+        <span class="n">tids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">category</span><span class="o">=</span><span class="n">category</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">configuration</span><span class="o">=</span><span class="n">cids</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">_Template</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="p">,</span> <span class="n">tid</span><span class="p">)</span> <span class="k">for</span> <span class="n">tid</span> <span class="ow">in</span> <span class="n">tids</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="_Templates.exists"><a class="viewcode-back" href="../../developer/molsystem.html#molsystem.templates._Templates.exists">[docs]</a>    <span class="k">def</span> <span class="nf">exists</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="s1">&#39;general&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return whether a given template exists.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The name of the template/subset. The name-category pair must be</span>
+<span class="sd">            unique.</span>
+<span class="sd">        category : str = &#39;general&#39;</span>
+<span class="sd">            An optional category of template/subset, e.g. &#39;general&#39;, &#39;residue&#39;,</span>
+<span class="sd">            &#39;molecule&#39;</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bool</span>
+<span class="sd">            Whether the template exists.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;SELECT COUNT(*) FROM template WHERE category = ? AND name = ?&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="p">(</span><span class="n">category</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="_Templates.get"><a class="viewcode-back" href="../../developer/molsystem.html#molsystem.templates._Templates.get">[docs]</a>    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="s1">&#39;general&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a template.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The id or name of the template/subset. If the id is given, the</span>
+<span class="sd">            category is ignored. Otherwise the template with the given name</span>
+<span class="sd">            and category is returned.</span>
+<span class="sd">        category : str = &#39;general&#39;</span>
+<span class="sd">            An optional category of template/subset, e.g. &#39;general&#39;, &#39;residue&#39;,</span>
+<span class="sd">            &#39;molecule&#39;</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        _Template</span>
+<span class="sd">            The template, or None if it does not exist.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="c1"># A name is given</span>
+            <span class="n">tid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_id</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="n">category</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">tid</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># The id given</span>
+            <span class="n">tid</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="k">return</span> <span class="n">_Template</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="p">,</span> <span class="n">tid</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_Templates.get_id"><a class="viewcode-back" href="../../developer/molsystem.html#molsystem.templates._Templates.get_id">[docs]</a>    <span class="k">def</span> <span class="nf">get_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="s1">&#39;general&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the id of a template.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The name of the template/subset. The name-category pair must be</span>
+<span class="sd">            unique.</span>
+<span class="sd">        category : str = &#39;general&#39;</span>
+<span class="sd">            An optional category of template/subset, e.g. &#39;general&#39;, &#39;residue&#39;,</span>
+<span class="sd">            &#39;molecule&#39;</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        int</span>
+<span class="sd">            The id of the template, or None if it does not exist.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;SELECT id FROM template WHERE category = ? AND name = ?&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="p">(</span><span class="n">category</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="_Templates.names"><a class="viewcode-back" href="../../developer/molsystem.html#molsystem.templates._Templates.names">[docs]</a>    <span class="k">def</span> <span class="nf">names</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">category</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the current names of templates of the given category.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        category : str</span>
+<span class="sd">            The category of template/subset, e.g. &#39;general&#39;, &#39;residue&#39;,</span>
+<span class="sd">            &#39;molecule&#39;</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        [str]</span>
+<span class="sd">            The names of templates of the given category.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;SELECT name FROM template WHERE category = ? ORDER BY name ASC&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="p">(</span><span class="n">category</span><span class="p">,))]</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+
+    </p>
+  </div>
+
+<p>
+<div class="row">
+  <div class="column_left">
+    <a href="https://molssi.org/" target="_blank" title="Go to MolSSI in a new tab">
+      <img src="/_images/MolSSI.jpg" alt="The MolSSI" style="border:0;">
+    </a>
+  </div>
+  <div class="column">
+    &copy; Copyright 2020, the Molecular Sciences Software Institute,
+    which receives funding from the National Science Foundation under award ACI-1547580
+  </div>
+  <div class="column_right">
+    <a href="https://nsf.gov/" target="_blank" title="Go to the NSF in a new tab">
+      <img src="/_images/NSF_4-Color_bitmap_Logo.png" alt="The NSF" style="border:0;">
+    </a>
+  </div>
+</div>
+
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

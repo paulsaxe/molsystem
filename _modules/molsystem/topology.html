@@ -1,0 +1,365 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>molsystem.topology &#8212; MolSystem 2020.12.5 documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
+    
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">MolSystem 2020.12.5 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">molsystem.topology</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for molsystem.topology</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="sd">&quot;&quot;&quot;Topological methods for the system&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="kn">from</span> <span class="nn">openbabel</span> <span class="kn">import</span> <span class="n">openbabel</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="TopologyMixin"><a class="viewcode-back" href="../../molsystem.html#molsystem.topology.TopologyMixin">[docs]</a><span class="k">class</span> <span class="nc">TopologyMixin</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;A mixin for handling topology.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TopologyMixin.find_molecules"><a class="viewcode-back" href="../../molsystem.html#molsystem.topology.TopologyMixin.find_molecules">[docs]</a>    <span class="k">def</span> <span class="nf">find_molecules</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">configuration</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">as_indices</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Find the separate molecules in a system.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        configuration : int = None</span>
+<span class="sd">            The configuration to use, defaults to the current configuration.</span>
+<span class="sd">        as_indices : bool = False</span>
+<span class="sd">            Whether to return 0-based indices (True) or atom ids (False)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        molecules : [[int]*n_molecules]</span>
+<span class="sd">            A list of lists of atom ids or indices for the molecules</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">configuration</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">configuration</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_configuration</span>
+
+        <span class="n">molecules</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">atoms</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;atoms&#39;</span><span class="p">]</span>
+        <span class="n">atom_ids</span> <span class="o">=</span> <span class="n">atoms</span><span class="o">.</span><span class="n">atom_ids</span><span class="p">(</span><span class="n">configuration</span><span class="p">)</span>
+        <span class="n">n_atoms</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">atom_ids</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">n_atoms</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">molecules</span>
+
+        <span class="n">to_index</span> <span class="o">=</span> <span class="p">{</span><span class="n">j</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">atom_ids</span><span class="p">)}</span>
+        <span class="n">neighbors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bonded_neighbors</span><span class="p">(</span><span class="n">configuration</span><span class="p">)</span>
+        <span class="n">visited</span> <span class="o">=</span> <span class="p">[</span><span class="kc">False</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_atoms</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="c1"># Find first atom not yet visited</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">index</span> <span class="o">=</span> <span class="n">visited</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="n">visited</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="n">atom_ids</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="n">atoms</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">next_atoms</span> <span class="o">=</span> <span class="n">neighbors</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">next_atoms</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">tmp</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">next_atoms</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">visited</span><span class="p">[</span><span class="n">to_index</span><span class="p">[</span><span class="n">i</span><span class="p">]]:</span>
+                        <span class="n">atoms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                        <span class="n">visited</span><span class="p">[</span><span class="n">to_index</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">True</span>
+                        <span class="n">tmp</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">neighbors</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                <span class="n">next_atoms</span> <span class="o">=</span> <span class="n">tmp</span>
+            <span class="n">molecules</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">atoms</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">as_indices</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[[</span><span class="n">to_index</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">js</span><span class="p">]</span> <span class="k">for</span> <span class="n">js</span> <span class="ow">in</span> <span class="n">molecules</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">molecules</span></div>
+
+<div class="viewcode-block" id="TopologyMixin.bonded_neighbors"><a class="viewcode-back" href="../../molsystem.html#molsystem.topology.TopologyMixin.bonded_neighbors">[docs]</a>    <span class="k">def</span> <span class="nf">bonded_neighbors</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">configuration</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">as_indices</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">first_index</span><span class="o">=</span><span class="mi">0</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The atoms bonded to each atom in the system.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        configuration : int = None</span>
+<span class="sd">            The configuration to use, defaults to the current configuration.</span>
+<span class="sd">        as_indices : bool = False</span>
+<span class="sd">            Whether to return 0-based indices (True) or atom ids (False)</span>
+<span class="sd">        first_index : int = 0</span>
+<span class="sd">            The smallest index, e.g. 0 or 1</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        neighbors : {int: [int]} or [[int]] for indices</span>
+<span class="sd">            list of atom ids for each atom id</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">neighbors</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">atoms</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;atoms&#39;</span><span class="p">]</span>
+        <span class="n">bonds</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;bonds&#39;</span><span class="p">]</span>
+        <span class="n">n_atoms</span> <span class="o">=</span> <span class="n">atoms</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">(</span><span class="n">configuration</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">n_atoms</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">as_indices</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">[]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">neighbors</span>
+
+        <span class="n">atom_ids</span> <span class="o">=</span> <span class="n">atoms</span><span class="o">.</span><span class="n">atom_ids</span><span class="p">(</span><span class="n">configuration</span><span class="p">)</span>
+        <span class="n">neighbors</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">atom_ids</span><span class="p">}</span>
+
+        <span class="k">if</span> <span class="n">bonds</span><span class="o">.</span><span class="n">n_bonds</span><span class="p">(</span><span class="n">configuration</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">bond</span> <span class="ow">in</span> <span class="n">bonds</span><span class="o">.</span><span class="n">bonds</span><span class="p">(</span><span class="n">configuration</span><span class="p">):</span>
+                <span class="n">i</span> <span class="o">=</span> <span class="n">bond</span><span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">]</span>
+                <span class="n">j</span> <span class="o">=</span> <span class="n">bond</span><span class="p">[</span><span class="s1">&#39;j&#39;</span><span class="p">]</span>
+                <span class="n">neighbors</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+                <span class="n">neighbors</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">as_indices</span><span class="p">:</span>
+            <span class="c1"># Convert to indices</span>
+            <span class="n">to_index</span> <span class="o">=</span> <span class="p">{</span><span class="n">j</span><span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">first_index</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">atom_ids</span><span class="p">)}</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="p">[[]]</span> <span class="o">*</span> <span class="p">(</span><span class="n">n_atoms</span> <span class="o">+</span> <span class="n">first_index</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">js</span> <span class="ow">in</span> <span class="n">neighbors</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">to_index</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">to_index</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">js</span><span class="p">])</span>
+            <span class="k">return</span> <span class="n">result</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">neighbors</span><span class="p">:</span>
+                <span class="n">neighbors</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+
+            <span class="k">return</span> <span class="n">neighbors</span></div>
+
+<div class="viewcode-block" id="TopologyMixin.create_molecule_subsets"><a class="viewcode-back" href="../../molsystem.html#molsystem.topology.TopologyMixin.create_molecule_subsets">[docs]</a>    <span class="k">def</span> <span class="nf">create_molecule_subsets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">configuration</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a subset for each molecule in a configuration.</span>
+
+<span class="sd">        By default they all reference an empty template &#39;all&#39; of type</span>
+<span class="sd">        &#39;molecule&#39;.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        configuration : int = None</span>
+<span class="sd">            The configuration to use, defaults to the current configuration.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        [int]</span>
+<span class="sd">            The ids of the subsets, one per molecule.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">configuration</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">configuration</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_configuration</span>
+
+        <span class="c1"># get the &#39;all/molecule&#39; template</span>
+        <span class="n">templates</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;template&#39;</span><span class="p">]</span>
+        <span class="n">tid</span> <span class="o">=</span> <span class="n">templates</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;all&#39;</span><span class="p">,</span> <span class="s1">&#39;molecule&#39;</span><span class="p">,</span> <span class="n">create</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Find the molecules and the create the subsets if they don&#39;t exist.</span>
+        <span class="n">molecules</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_molecules</span><span class="p">(</span><span class="n">configuration</span><span class="o">=</span><span class="n">configuration</span><span class="p">)</span>
+
+        <span class="c1"># Remove any previous subsets for this configuration</span>
+        <span class="n">subsets</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;subset&#39;</span><span class="p">]</span>
+        <span class="n">sids</span> <span class="o">=</span> <span class="n">subsets</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">tid</span><span class="p">,</span> <span class="n">configuration</span><span class="o">=</span><span class="n">configuration</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sids</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">subsets</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">sids</span><span class="p">)</span>
+
+        <span class="c1"># Now create the new set.</span>
+        <span class="n">sids</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">atom_ids</span> <span class="ow">in</span> <span class="n">molecules</span><span class="p">:</span>
+            <span class="n">sid</span> <span class="o">=</span> <span class="n">subsets</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+                <span class="n">tid</span><span class="p">,</span> <span class="n">configuration</span><span class="o">=</span><span class="n">configuration</span><span class="p">,</span> <span class="n">atoms</span><span class="o">=</span><span class="n">atom_ids</span>
+            <span class="p">)</span>
+            <span class="n">sids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sid</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">sids</span></div>
+
+<div class="viewcode-block" id="TopologyMixin.create_molecule_templates"><a class="viewcode-back" href="../../molsystem.html#molsystem.topology.TopologyMixin.create_molecule_templates">[docs]</a>    <span class="k">def</span> <span class="nf">create_molecule_templates</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">configuration</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">create_subsets</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a template for each unique molecule in a configuration.</span>
+
+<span class="sd">        By default also create subsets linking each template to the atoms</span>
+<span class="sd">        of the molecules in the system.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        configuration : int = None</span>
+<span class="sd">            The configuration to use, defaults to the current configuration.</span>
+<span class="sd">        create_subsets : bool = True</span>
+<span class="sd">            If true, create subsets linking the templates to the molecules.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        [int] or [[int], [int]]</span>
+<span class="sd">            The ids of the templates, or if create_subsets is True</span>
+<span class="sd">            a two-element list containing the list of templates and</span>
+<span class="sd">            list of subsets.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">configuration</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">configuration</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_configuration</span>
+
+        <span class="c1"># Find the molecules</span>
+        <span class="n">molecules</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_molecules</span><span class="p">(</span><span class="n">configuration</span><span class="o">=</span><span class="n">configuration</span><span class="p">)</span>
+        <span class="n">n_molecules</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">molecules</span><span class="p">)</span>
+
+        <span class="c1"># And the molecule each atom is in</span>
+        <span class="n">atom_to_molecule</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">molecule</span><span class="p">,</span> <span class="n">atoms</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">molecules</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">atom</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">:</span>
+                <span class="n">atom_to_molecule</span><span class="p">[</span><span class="n">atom</span><span class="p">]</span> <span class="o">=</span> <span class="n">molecule</span>
+
+        <span class="c1"># The bonds in each molecule</span>
+        <span class="n">bonds_per_molecule</span> <span class="o">=</span> <span class="p">[[]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_molecules</span><span class="p">)]</span>
+        <span class="k">for</span> <span class="n">bond</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">bonds</span><span class="o">.</span><span class="n">bonds</span><span class="p">(</span><span class="n">configuration</span><span class="o">=</span><span class="n">configuration</span><span class="p">):</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="n">bond</span><span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">]</span>
+            <span class="n">j</span> <span class="o">=</span> <span class="n">bond</span><span class="p">[</span><span class="s1">&#39;j&#39;</span><span class="p">]</span>
+            <span class="n">order</span> <span class="o">=</span> <span class="n">bond</span><span class="p">[</span><span class="s1">&#39;bondorder&#39;</span><span class="p">]</span>
+            <span class="n">molecule</span> <span class="o">=</span> <span class="n">atom_to_molecule</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">bonds_per_molecule</span><span class="p">[</span><span class="n">molecule</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">order</span><span class="p">))</span>
+
+        <span class="c1"># Get the canonical smiles for each molecule</span>
+        <span class="n">to_can</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBConversion</span><span class="p">()</span>
+        <span class="n">to_can</span><span class="o">.</span><span class="n">SetOutFormat</span><span class="p">(</span><span class="s1">&#39;can&#39;</span><span class="p">)</span>
+        <span class="n">to_smi</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBConversion</span><span class="p">()</span>
+        <span class="n">to_smi</span><span class="o">.</span><span class="n">SetOutFormat</span><span class="p">(</span><span class="s1">&#39;smi&#39;</span><span class="p">)</span>
+        <span class="n">ob_mol</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBMol</span><span class="p">()</span>
+        <span class="n">ob_template</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBMol</span><span class="p">()</span>
+        <span class="n">atnos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="p">(</span><span class="n">configuration</span><span class="p">)</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">sids</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">tids</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">molecule</span><span class="p">,</span> <span class="n">atoms</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">molecules</span><span class="p">):</span>
+            <span class="n">to_index</span> <span class="o">=</span> <span class="p">{</span><span class="n">j</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">atoms</span><span class="p">)}</span>
+            <span class="n">n_atoms</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">atoms</span><span class="p">)</span>
+            <span class="n">molecule_atnos</span> <span class="o">=</span> <span class="n">atnos</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">start</span> <span class="o">+</span> <span class="n">n_atoms</span><span class="p">]</span>
+            <span class="n">start</span> <span class="o">+=</span> <span class="n">n_atoms</span>
+
+            <span class="n">ob_mol</span><span class="o">.</span><span class="n">Clear</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">atom</span><span class="p">,</span> <span class="n">atno</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">atoms</span><span class="p">,</span> <span class="n">molecule_atnos</span><span class="p">):</span>
+                <span class="n">ob_atom</span> <span class="o">=</span> <span class="n">ob_mol</span><span class="o">.</span><span class="n">NewAtom</span><span class="p">()</span>
+                <span class="n">ob_atom</span><span class="o">.</span><span class="n">SetAtomicNum</span><span class="p">(</span><span class="n">atno</span><span class="p">)</span>
+            <span class="n">bonds</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">order</span> <span class="ow">in</span> <span class="n">bonds_per_molecule</span><span class="p">[</span><span class="n">molecule</span><span class="p">]:</span>
+                <span class="n">bonds</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">to_index</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">to_index</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">order</span><span class="p">))</span>
+                <span class="c1"># 1-based indices in ob.</span>
+                <span class="n">ob_mol</span><span class="o">.</span><span class="n">AddBond</span><span class="p">(</span><span class="n">to_index</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">to_index</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">order</span><span class="p">)</span>
+
+            <span class="n">smiles</span> <span class="o">=</span> <span class="n">to_smi</span><span class="o">.</span><span class="n">WriteString</span><span class="p">(</span><span class="n">ob_mol</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="n">canonical</span> <span class="o">=</span> <span class="n">to_can</span><span class="o">.</span><span class="n">WriteString</span><span class="p">(</span><span class="n">ob_mol</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+            <span class="c1"># See if a molecule template with the canonical smiles exists</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">templates</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">canonical</span><span class="p">,</span> <span class="s1">&#39;molecule&#39;</span><span class="p">):</span>
+                <span class="n">tid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">templates</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">canonical</span><span class="p">,</span> <span class="s1">&#39;molecule&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">tid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">templates</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
+                    <span class="n">canonical</span><span class="p">,</span> <span class="s1">&#39;molecule&#39;</span><span class="p">,</span> <span class="n">atnos</span><span class="o">=</span><span class="n">molecule_atnos</span><span class="p">,</span> <span class="n">bonds</span><span class="o">=</span><span class="n">bonds</span>
+                <span class="p">)</span>
+            <span class="n">tids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tid</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">create_subsets</span><span class="p">:</span>
+                <span class="n">tatom_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">templateatoms</span><span class="o">.</span><span class="n">atom_ids</span><span class="p">(</span><span class="n">tid</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">smiles</span> <span class="o">!=</span> <span class="n">canonical</span><span class="p">:</span>
+                    <span class="c1"># Need to reorder the atoms to match the template atoms</span>
+
+                    <span class="c1"># Prepare the OB molecule for the template</span>
+                    <span class="n">ob_template</span><span class="o">.</span><span class="n">Clear</span><span class="p">()</span>
+                    <span class="k">for</span> <span class="n">atno</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">templateatoms</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="p">(</span><span class="n">tid</span><span class="p">):</span>
+                        <span class="n">ob_atom</span> <span class="o">=</span> <span class="n">ob_template</span><span class="o">.</span><span class="n">NewAtom</span><span class="p">()</span>
+                        <span class="n">ob_atom</span><span class="o">.</span><span class="n">SetAtomicNum</span><span class="p">(</span><span class="n">atno</span><span class="p">)</span>
+
+                    <span class="n">tatom_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">templateatoms</span><span class="o">.</span><span class="n">atom_ids</span><span class="p">(</span><span class="n">tid</span><span class="p">)</span>
+                    <span class="n">to_index</span> <span class="o">=</span> <span class="p">{</span><span class="n">j</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tatom_ids</span><span class="p">)}</span>
+                    <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">templatebonds</span><span class="o">.</span><span class="n">bonds</span><span class="p">(</span><span class="n">tid</span><span class="p">):</span>
+                        <span class="n">i</span> <span class="o">=</span> <span class="n">to_index</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">]]</span>
+                        <span class="n">j</span> <span class="o">=</span> <span class="n">to_index</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;j&#39;</span><span class="p">]]</span>
+                        <span class="n">order</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;bondorder&#39;</span><span class="p">]</span>
+                        <span class="n">ob_template</span><span class="o">.</span><span class="n">AddBond</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">j</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">order</span><span class="p">)</span>
+
+                    <span class="c1"># Get the mapping from template to molecule</span>
+                    <span class="n">query</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">CompileMoleculeQuery</span><span class="p">(</span><span class="n">ob_template</span><span class="p">)</span>
+                    <span class="n">mapper</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBIsomorphismMapper</span><span class="o">.</span><span class="n">GetInstance</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+                    <span class="n">mapping</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">vpairUIntUInt</span><span class="p">()</span>
+                    <span class="n">mapper</span><span class="o">.</span><span class="n">MapFirst</span><span class="p">(</span><span class="n">ob_mol</span><span class="p">,</span> <span class="n">mapping</span><span class="p">)</span>
+                    <span class="n">tmp</span> <span class="o">=</span> <span class="p">[</span><span class="n">atoms</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">mapping</span><span class="p">]</span>
+                    <span class="n">atoms</span> <span class="o">=</span> <span class="n">tmp</span>
+                <span class="n">sid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subsets</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="n">tid</span><span class="p">,</span> <span class="n">configuration</span><span class="p">,</span> <span class="n">atoms</span><span class="p">,</span> <span class="n">tatom_ids</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">tid</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sids</span><span class="p">:</span>
+                    <span class="n">sids</span><span class="p">[</span><span class="n">tid</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">sids</span><span class="p">[</span><span class="n">tid</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sid</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">create_subsets</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">tids</span><span class="p">,</span> <span class="n">sids</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">tids</span></div></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">MolSystem 2020.12.5 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">molsystem.topology</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2021, Paul Saxe.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.4.3.
+    </div>
+  </body>
+</html>

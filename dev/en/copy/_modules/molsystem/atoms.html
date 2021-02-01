@@ -1,0 +1,1516 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>molsystem.atoms &mdash; MolSystem Step 2020.12.5+21.g1f45da7 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/custom.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> MolSystem Step
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2020.12.5+21.g1f45da7
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../user/index.html">User Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developer/index.html">Developer Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../authors.html">Credits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">History</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://molssi-seamm.github.io">Main SEAMM documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">MolSystem Step</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>molsystem.atoms</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for molsystem.atoms</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="sd">&quot;&quot;&quot;A dictionary-like object for holding atoms.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">zip_longest</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">pprint</span>  <span class="c1"># noqa: F401</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">TypeVar</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">import</span> <span class="nn">pandas</span>
+
+<span class="kn">from</span> <span class="nn">molsystem</span> <span class="kn">import</span> <span class="n">elements</span>
+<span class="kn">from</span> <span class="nn">.column</span> <span class="kn">import</span> <span class="n">_Column</span>
+<span class="kn">from</span> <span class="nn">.table</span> <span class="kn">import</span> <span class="n">_Table</span>
+
+<span class="n">System_tp</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;System_tp&quot;</span><span class="p">,</span> <span class="s2">&quot;System&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="n">Atoms_tp</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;Atoms_tp&quot;</span><span class="p">,</span> <span class="s2">&quot;_Atoms&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="grouped"><a class="viewcode-back" href="../../molsystem.html#molsystem.atoms.grouped">[docs]</a><span class="k">def</span> <span class="nf">grouped</span><span class="p">(</span><span class="n">iterable</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+    <span class="s2">&quot;s -&gt; (s0,s1,s2,...sn-1), (sn,sn+1,sn+2,...s2n-1), (s2n,...s3n-1), ...&quot;</span>
+    <span class="k">return</span> <span class="n">zip_longest</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="nb">iter</span><span class="p">(</span><span class="n">iterable</span><span class="p">)]</span> <span class="o">*</span> <span class="n">n</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_Atoms"><a class="viewcode-back" href="../../molsystem.html#molsystem.atoms._Atoms">[docs]</a><span class="k">class</span> <span class="nc">_Atoms</span><span class="p">(</span><span class="n">_Table</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;:meta public:</span>
+<span class="sd">    The atoms in a configuration of a system.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    configuration : _Configuration</span>
+<span class="sd">        The configuration of interest.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">configuration</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_configuration</span> <span class="o">=</span> <span class="n">configuration</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_system_db</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_configuration</span><span class="o">.</span><span class="n">system_db</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_system</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_atomset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_configuration</span><span class="o">.</span><span class="n">atomset</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_atom_table</span> <span class="o">=</span> <span class="n">_Table</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="p">,</span> <span class="s1">&#39;atom&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates_table</span> <span class="o">=</span> <span class="n">_Table</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="p">,</span> <span class="s1">&#39;coordinates&#39;</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_system_db</span><span class="p">,</span> <span class="s1">&#39;atom&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Copy the tables to a backup for a &#39;with&#39; statement.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="p">[</span><span class="s2">&quot;atomset_atom&quot;</span><span class="p">]</span><span class="o">.</span><span class="fm">__enter__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="p">[</span><span class="s2">&quot;atom&quot;</span><span class="p">]</span><span class="o">.</span><span class="fm">__enter__</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">etype</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">traceback</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Handle returning from a &#39;with&#39; statement.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">etype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">version</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">version</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="p">[</span><span class="s2">&quot;atomset_atom&quot;</span><span class="p">]</span><span class="o">.</span><span class="fm">__exit__</span><span class="p">(</span><span class="n">etype</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">traceback</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="p">[</span><span class="s2">&quot;atom&quot;</span><span class="p">]</span><span class="o">.</span><span class="fm">__exit__</span><span class="p">(</span><span class="n">etype</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">traceback</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Allow deletion of keys&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atom_table</span><span class="o">.</span><span class="n">attributes</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atom_table</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates_table</span><span class="o">.</span><span class="n">attributes</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates_table</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">iter</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Allow iteration over the object&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">([</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">attributes</span><span class="o">.</span><span class="n">keys</span><span class="p">()])</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;The len() command&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attributes</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;The string representation of this object&quot;&quot;&quot;</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_dataframe</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">repr</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;The pretty string representation of this object&quot;&quot;&quot;</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_dataframe</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">to_string</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Return a boolean indicating if a key exists.&quot;&quot;&quot;</span>
+        <span class="c1"># Normal the tablename is used as an identifier, so is quoted with &quot;.</span>
+        <span class="c1"># Here we need it as a string literal so strip any quotes from it.</span>
+
+        <span class="n">tmp_item</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">tmp_item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">attributes</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Return a boolean if this object is equal to another&quot;&quot;&quot;</span>
+        <span class="n">diffs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">diffs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ids</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The ids of the atoms.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_ids</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">atomic_numbers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The atomic numbers of the atoms.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        [int]</span>
+<span class="sd">            The atomic numbers.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_column_data</span><span class="p">(</span><span class="s1">&#39;atno&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">atomic_masses</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The atomic masses of the atoms.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        [int]</span>
+<span class="sd">            The atomic numbers.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="s1">&#39;mass&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_column_data</span><span class="p">(</span><span class="s1">&#39;mass&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">atnos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">elements</span><span class="o">.</span><span class="n">masses</span><span class="p">(</span><span class="n">atnos</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">atomset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The atomset for these atoms.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atomset</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;The definitions of the attributes.</span>
+<span class="sd">        Combine the attributes of the atom and coordinates tables to</span>
+<span class="sd">        make it look like a single larger table.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atom_table</span><span class="o">.</span><span class="n">attributes</span>
+
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates_table</span><span class="o">.</span><span class="n">attributes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="o">!=</span> <span class="s1">&#39;atom&#39;</span><span class="p">:</span>  <span class="c1"># atom key links the tables together, so ignore</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">configuration</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the configuration.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_configuration</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">coordinates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The coordinates as list of lists.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_coordinates</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cursor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The database connection.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="o">.</span><span class="n">cursor</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">db</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The database connection.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="o">.</span><span class="n">db</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">n_atoms</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;The number of atoms in this configuration.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+            <span class="s1">&#39;SELECT COUNT(*) FROM atomset_atom WHERE atomset = ?&#39;</span><span class="p">,</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atomset</span><span class="p">,)</span>
+        <span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">symbols</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The element symbols for the atoms in this configuration.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        [str]</span>
+<span class="sd">            The element symbols</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">elements</span><span class="o">.</span><span class="n">to_symbols</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">system_db</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The system database that we belong to.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_system_db</span>
+
+<div class="viewcode-block" id="_Atoms.add_attribute"><a class="viewcode-back" href="../../molsystem.html#molsystem.atoms._Atoms.add_attribute">[docs]</a>    <span class="k">def</span> <span class="nf">add_attribute</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">coltype</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;float&#39;</span><span class="p">,</span>
+        <span class="n">default</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">notnull</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">index</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">pk</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">references</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">on_delete</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;cascade&#39;</span><span class="p">,</span>
+        <span class="n">on_update</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;cascade&#39;</span><span class="p">,</span>
+        <span class="n">values</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">configuration_dependent</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Adds a new attribute.</span>
+
+<span class="sd">        If the default value is None, you must always provide values wherever</span>
+<span class="sd">        needed, for example when adding a row.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The name of the attribute.</span>
+<span class="sd">        coltype : str</span>
+<span class="sd">            The type of the attribute (column). Must be one of &#39;int&#39;,</span>
+<span class="sd">            &#39;float&#39;, &#39;str&#39; or &#39;byte&#39;</span>
+<span class="sd">        default : int, float, str or byte</span>
+<span class="sd">            The default value for the attribute if no value is given.</span>
+<span class="sd">        notnull : bool = False</span>
+<span class="sd">            Whether the value must be non-null</span>
+<span class="sd">        index : bool = False</span>
+<span class="sd">            Whether to create an index on the column</span>
+<span class="sd">        pk : bool = False</span>
+<span class="sd">            Whether the column is the primry keys</span>
+<span class="sd">        references : str = None</span>
+<span class="sd">            If not null, the column is a foreign key for this table.</span>
+<span class="sd">        on_delete : str = &#39;cascade&#39;</span>
+<span class="sd">            How to handle deletions of a foregin keys</span>
+<span class="sd">        on_update : str = &#39;cascade&#39;</span>
+<span class="sd">            How to handle updates of a foregin key</span>
+<span class="sd">        values : Any</span>
+<span class="sd">            Either a single value or a list of values length &#39;nrows&#39; of</span>
+<span class="sd">            values to fill the column.</span>
+<span class="sd">        configuration_dependent : bool = False</span>
+<span class="sd">            Whether the attribute belongs with the coordinates (True)</span>
+<span class="sd">            or atoms (False)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">configuration_dependent</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates_table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span>
+                <span class="n">name</span><span class="p">,</span>
+                <span class="n">coltype</span><span class="o">=</span><span class="n">coltype</span><span class="p">,</span>
+                <span class="n">default</span><span class="o">=</span><span class="n">default</span><span class="p">,</span>
+                <span class="n">notnull</span><span class="o">=</span><span class="n">notnull</span><span class="p">,</span>
+                <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">,</span>
+                <span class="n">pk</span><span class="o">=</span><span class="n">pk</span><span class="p">,</span>
+                <span class="n">references</span><span class="o">=</span><span class="n">references</span><span class="p">,</span>
+                <span class="n">on_delete</span><span class="o">=</span><span class="n">on_delete</span><span class="p">,</span>
+                <span class="n">on_update</span><span class="o">=</span><span class="n">on_update</span><span class="p">,</span>
+                <span class="n">values</span><span class="o">=</span><span class="n">values</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_atom_table</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span>
+                <span class="n">name</span><span class="p">,</span>
+                <span class="n">coltype</span><span class="o">=</span><span class="n">coltype</span><span class="p">,</span>
+                <span class="n">default</span><span class="o">=</span><span class="n">default</span><span class="p">,</span>
+                <span class="n">notnull</span><span class="o">=</span><span class="n">notnull</span><span class="p">,</span>
+                <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">,</span>
+                <span class="n">pk</span><span class="o">=</span><span class="n">pk</span><span class="p">,</span>
+                <span class="n">references</span><span class="o">=</span><span class="n">references</span><span class="p">,</span>
+                <span class="n">on_delete</span><span class="o">=</span><span class="n">on_delete</span><span class="p">,</span>
+                <span class="n">on_update</span><span class="o">=</span><span class="n">on_update</span><span class="p">,</span>
+                <span class="n">values</span><span class="o">=</span><span class="n">values</span>
+            <span class="p">)</span></div>
+
+<div class="viewcode-block" id="_Atoms.append"><a class="viewcode-back" href="../../molsystem.html#molsystem.atoms._Atoms.append">[docs]</a>    <span class="k">def</span> <span class="nf">append</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Append one or more atoms.</span>
+
+<span class="sd">        The keys give the field for the data. If an existing field is not</span>
+<span class="sd">        mentioned, then the default value is used, unless the default is None,</span>
+<span class="sd">        in which case an error is thrown. It is an error if there is not a</span>
+<span class="sd">        field corrresponding to a key.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Need to handle the elements specially. Can give atomic numbers,</span>
+        <span class="c1"># or symbols. By construction the references to elements are identical</span>
+        <span class="c1"># to their atomic numbers.</span>
+
+        <span class="k">if</span> <span class="s1">&#39;symbol&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">symbols</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;symbol&#39;</span><span class="p">)</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;atno&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">elements</span><span class="o">.</span><span class="n">to_atnos</span><span class="p">(</span><span class="n">symbols</span><span class="p">)</span>
+
+        <span class="c1"># How many new rows there are</span>
+        <span class="n">n_rows</span><span class="p">,</span> <span class="n">lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_n_rows</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># Fill in the atom table</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atom_table</span><span class="o">.</span><span class="n">attributes</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">column</span> <span class="o">!=</span> <span class="s1">&#39;id&#39;</span> <span class="ow">and</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                <span class="n">data</span><span class="p">[</span><span class="n">column</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">column</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="s1">&#39;atno&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_rows</span>
+
+        <span class="n">ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atom_table</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="n">n_rows</span><span class="p">,</span> <span class="o">**</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="c1"># Now append to the coordinates table</span>
+        <span class="n">configuration</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">id</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;configuration&#39;</span><span class="p">:</span> <span class="n">configuration</span><span class="p">,</span> <span class="s1">&#39;atom&#39;</span><span class="p">:</span> <span class="n">ids</span><span class="p">}</span>
+        <span class="k">for</span> <span class="n">column</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates_table</span><span class="o">.</span><span class="n">attributes</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">column</span> <span class="o">!=</span> <span class="s1">&#39;id&#39;</span> <span class="ow">and</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                <span class="n">data</span><span class="p">[</span><span class="n">column</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">column</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates_table</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="n">n_rows</span><span class="p">,</span> <span class="o">**</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="c1"># And to the atomset</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">_Table</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="p">,</span> <span class="s1">&#39;atomset_atom&#39;</span><span class="p">)</span>
+        <span class="n">table</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">atomset</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">atomset</span><span class="p">,</span> <span class="n">atom</span><span class="o">=</span><span class="n">ids</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ids</span></div>
+
+<div class="viewcode-block" id="_Atoms.atoms"><a class="viewcode-back" href="../../molsystem.html#molsystem.atoms._Atoms.atoms">[docs]</a>    <span class="k">def</span> <span class="nf">atoms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return an iterator over the atoms.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        args : [str]</span>
+<span class="sd">            Added selection criteria for the SQL, one word at a time.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        sqlite3.Cursor</span>
+<span class="sd">            A cursor that returns sqlite3.Row objects for the atoms.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_columns</span><span class="p">()</span>
+        <span class="n">column_defs</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span>
+
+        <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT </span><span class="si">{</span><span class="n">column_defs</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">          FROM atom as at, coordinates as co</span>
+<span class="s2">         WHERE co.atom = at.id</span>
+<span class="s2">           AND at.id IN (SELECT atom FROM atomset_atom WHERE atomset = ?)</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+
+        <span class="n">parameters</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">atomset</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">grouped</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">op</span> <span class="o">==</span> <span class="s1">&#39;==&#39;</span><span class="p">:</span>
+                    <span class="n">op</span> <span class="o">=</span> <span class="s1">&#39;=&#39;</span>
+                <span class="n">sql</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39; AND &quot;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s1">&quot; </span><span class="si">{</span><span class="n">op</span><span class="si">}</span><span class="s1"> ?&#39;</span>
+                <span class="n">parameters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">parameters</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_Atoms.diff"><a class="viewcode-back" href="../../molsystem.html#molsystem.atoms._Atoms.diff">[docs]</a>    <span class="k">def</span> <span class="nf">diff</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Difference between these atoms and another</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        other : _Atoms</span>
+<span class="sd">            The other atoms to diff against</span>
+
+<span class="sd">        Result</span>
+<span class="sd">        ------</span>
+<span class="sd">        result : Dict</span>
+<span class="sd">            The differences, described in a dictionary</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># Check the columns</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_columns</span><span class="p">()</span>
+        <span class="n">other_columns</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">_columns</span><span class="p">()</span>
+
+        <span class="n">column_defs</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span>
+        <span class="n">other_column_defs</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">other_columns</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">columns</span> <span class="o">==</span> <span class="n">other_columns</span><span class="p">:</span>
+            <span class="n">column_def</span> <span class="o">=</span> <span class="n">column_defs</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">added</span> <span class="o">=</span> <span class="n">columns</span> <span class="o">-</span> <span class="n">other_columns</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">added</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">result</span><span class="p">[</span><span class="s1">&#39;columns added&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">added</span><span class="p">)</span>
+            <span class="n">deleted</span> <span class="o">=</span> <span class="n">other_columns</span> <span class="o">-</span> <span class="n">columns</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">deleted</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">result</span><span class="p">[</span><span class="s1">&#39;columns deleted&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">deleted</span><span class="p">)</span>
+
+            <span class="n">in_common</span> <span class="o">=</span> <span class="n">other_columns</span> <span class="o">&amp;</span> <span class="n">columns</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">in_common</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">column_def</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">in_common</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># No columns shared</span>
+                <span class="k">return</span> <span class="n">result</span>
+
+        <span class="c1"># Need to check the contents of the tables. See if they are in the same</span>
+        <span class="c1"># database or if we need to attach the other database temporarily.</span>
+        <span class="n">db</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span>
+        <span class="n">other_db</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">system_db</span>
+
+        <span class="n">detach</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">schema</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span>
+        <span class="k">if</span> <span class="n">db</span><span class="o">.</span><span class="n">filename</span> <span class="o">!=</span> <span class="n">other_db</span><span class="o">.</span><span class="n">filename</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">db</span><span class="o">.</span><span class="n">is_attached</span><span class="p">(</span><span class="n">other_db</span><span class="p">):</span>
+                <span class="n">other_schema</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">attached_as</span><span class="p">(</span><span class="n">other_db</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Attach the other system_db in order to do comparisons.</span>
+                <span class="n">other_schema</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">other_db</span><span class="p">)</span>
+                <span class="n">detach</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">other_schema</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">schema</span>
+
+        <span class="n">atomset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomset</span>
+        <span class="n">other_atomset</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">atomset</span>
+
+        <span class="n">changed</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">last</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT * FROM</span>
+<span class="s2">        (</span>
+<span class="s2">          SELECT </span><span class="si">{</span><span class="n">column_def</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">            FROM </span><span class="si">{</span><span class="n">other_schema</span><span class="si">}</span><span class="s2">.atom AS at, </span><span class="si">{</span><span class="n">other_schema</span><span class="si">}</span><span class="s2">.coordinates AS co</span>
+<span class="s2">           WHERE co.atom = at.id</span>
+<span class="s2">             AND at.id</span>
+<span class="s2">              IN (</span>
+<span class="s2">                  SELECT atom</span>
+<span class="s2">                    FROM </span><span class="si">{</span><span class="n">other_schema</span><span class="si">}</span><span class="s2">.atomset_atom</span>
+<span class="s2">                   WHERE atomset = </span><span class="si">{</span><span class="n">other_atomset</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">                  )</span>
+<span class="s2">          EXCEPT</span>
+<span class="s2">          SELECT </span><span class="si">{</span><span class="n">column_def</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">            FROM </span><span class="si">{</span><span class="n">schema</span><span class="si">}</span><span class="s2">.atom AS at, </span><span class="si">{</span><span class="n">schema</span><span class="si">}</span><span class="s2">.coordinates AS co</span>
+<span class="s2">           WHERE co.atom = at.id</span>
+<span class="s2">             AND at.id</span>
+<span class="s2">              IN (</span>
+<span class="s2">                  SELECT atom</span>
+<span class="s2">                    FROM </span><span class="si">{</span><span class="n">schema</span><span class="si">}</span><span class="s2">.atomset_atom</span>
+<span class="s2">                    WHERE atomset = </span><span class="si">{</span><span class="n">atomset</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">                 )</span>
+<span class="s2">        )</span>
+<span class="s2">         UNION ALL</span>
+<span class="s2">        SELECT * FROM</span>
+<span class="s2">        (</span>
+<span class="s2">          SELECT </span><span class="si">{</span><span class="n">column_def</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">            FROM </span><span class="si">{</span><span class="n">schema</span><span class="si">}</span><span class="s2">.atom AS at, </span><span class="si">{</span><span class="n">schema</span><span class="si">}</span><span class="s2">.coordinates AS co</span>
+<span class="s2">           WHERE co.atom = at.id</span>
+<span class="s2">             AND at.id</span>
+<span class="s2">              IN (</span>
+<span class="s2">                  SELECT atom</span>
+<span class="s2">                    FROM </span><span class="si">{</span><span class="n">schema</span><span class="si">}</span><span class="s2">.atomset_atom</span>
+<span class="s2">                   WHERE atomset = </span><span class="si">{</span><span class="n">atomset</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">                 )</span>
+<span class="s2">          EXCEPT</span>
+<span class="s2">          SELECT </span><span class="si">{</span><span class="n">column_def</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">            FROM </span><span class="si">{</span><span class="n">other_schema</span><span class="si">}</span><span class="s2">.atom AS at, </span><span class="si">{</span><span class="n">other_schema</span><span class="si">}</span><span class="s2">.coordinates AS co</span>
+<span class="s2">           WHERE co.atom = at.id</span>
+<span class="s2">             AND at.id</span>
+<span class="s2">              IN (</span>
+<span class="s2">                  SELECT atom</span>
+<span class="s2">                    FROM </span><span class="si">{</span><span class="n">other_schema</span><span class="si">}</span><span class="s2">.atomset_atom</span>
+<span class="s2">                   WHERE atomset = </span><span class="si">{</span><span class="n">other_atomset</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">                 )</span>
+<span class="s2">        )</span>
+<span class="s2">        ORDER BY id</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">last</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">last</span> <span class="o">=</span> <span class="n">row</span>
+            <span class="k">elif</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">last</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]:</span>
+                <span class="c1"># changes = []</span>
+                <span class="n">changes</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">k1</span><span class="p">,</span> <span class="n">v1</span><span class="p">,</span> <span class="n">v2</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">last</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">last</span><span class="p">,</span> <span class="n">row</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">v1</span> <span class="o">!=</span> <span class="n">v2</span><span class="p">:</span>
+                        <span class="n">changes</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">k1</span><span class="p">,</span> <span class="n">v1</span><span class="p">,</span> <span class="n">v2</span><span class="p">))</span>
+                <span class="n">changed</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">changes</span>
+                <span class="n">last</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">last</span> <span class="o">=</span> <span class="n">row</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">changed</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">result</span><span class="p">[</span><span class="s1">&#39;changed&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">changed</span>
+
+        <span class="c1"># See about the rows added</span>
+        <span class="n">added</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT </span><span class="si">{</span><span class="n">column_defs</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">          FROM </span><span class="si">{</span><span class="n">schema</span><span class="si">}</span><span class="s2">.atom AS at, </span><span class="si">{</span><span class="n">schema</span><span class="si">}</span><span class="s2">.coordinates AS co</span>
+<span class="s2">         WHERE co.atom = at.id</span>
+<span class="s2">           AND at.id</span>
+<span class="s2">            IN (</span>
+<span class="s2">                SELECT atom</span>
+<span class="s2">                  FROM </span><span class="si">{</span><span class="n">schema</span><span class="si">}</span><span class="s2">.atomset_atom</span>
+<span class="s2">                 WHERE atomset = </span><span class="si">{</span><span class="n">atomset</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">               )</span>
+<span class="s2">           AND at.id</span>
+<span class="s2">        NOT IN (</span>
+<span class="s2">                SELECT atom</span>
+<span class="s2">                  FROM </span><span class="si">{</span><span class="n">other_schema</span><span class="si">}</span><span class="s2">.atomset_atom</span>
+<span class="s2">                 WHERE atomset = </span><span class="si">{</span><span class="n">other_atomset</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">               )</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">):</span>
+            <span class="n">added</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">added</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">result</span><span class="p">[</span><span class="s1">&#39;columns in added rows&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">keys</span><span class="p">()[</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="n">result</span><span class="p">[</span><span class="s1">&#39;added&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">added</span>
+
+        <span class="c1"># See about the rows deleted</span>
+        <span class="n">deleted</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT </span><span class="si">{</span><span class="n">other_column_defs</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">          FROM </span><span class="si">{</span><span class="n">other_schema</span><span class="si">}</span><span class="s2">.atom AS at, </span><span class="si">{</span><span class="n">other_schema</span><span class="si">}</span><span class="s2">.coordinates AS co</span>
+<span class="s2">         WHERE co.atom = at.id</span>
+<span class="s2">           AND at.id</span>
+<span class="s2">            IN (</span>
+<span class="s2">                SELECT atom</span>
+<span class="s2">                  FROM </span><span class="si">{</span><span class="n">other_schema</span><span class="si">}</span><span class="s2">.atomset_atom</span>
+<span class="s2">                 WHERE atomset = </span><span class="si">{</span><span class="n">other_atomset</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">               )</span>
+<span class="s2">           AND at.id</span>
+<span class="s2">        NOT IN (</span>
+<span class="s2">                SELECT atom</span>
+<span class="s2">                  FROM </span><span class="si">{</span><span class="n">schema</span><span class="si">}</span><span class="s2">.atomset_atom</span>
+<span class="s2">                 WHERE atomset = </span><span class="si">{</span><span class="n">atomset</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">               )</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">):</span>
+            <span class="n">deleted</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">deleted</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">result</span><span class="p">[</span><span class="s1">&#39;columns in deleted rows&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">keys</span><span class="p">()[</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="n">result</span><span class="p">[</span><span class="s1">&#39;deleted&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">deleted</span>
+
+        <span class="c1"># Detach the other database if needed</span>
+        <span class="k">if</span> <span class="n">detach</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="o">.</span><span class="n">detach</span><span class="p">(</span><span class="n">other_db</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="_Atoms.get_as_dict"><a class="viewcode-back" href="../../molsystem.html#molsystem.atoms._Atoms.get_as_dict">[docs]</a>    <span class="k">def</span> <span class="nf">get_as_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the atom data as a Python dictionary of lists.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        args : [str]</span>
+<span class="sd">            Added selection criteria for the SQL, one word at a time.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict(str: [])</span>
+<span class="sd">            A dictionary whose keys are the column names and values as lists</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">rows</span><span class="o">.</span><span class="n">description</span><span class="p">]</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">columns</span><span class="p">}</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">columns</span><span class="p">,</span> <span class="n">row</span><span class="p">):</span>
+                <span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">data</span></div>
+
+<div class="viewcode-block" id="_Atoms.get_ids"><a class="viewcode-back" href="../../molsystem.html#molsystem.atoms._Atoms.get_ids">[docs]</a>    <span class="k">def</span> <span class="nf">get_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The ids of the atoms.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        args : [str]</span>
+<span class="sd">            Added selection criteria for the SQL, one word at a time.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        [int]</span>
+<span class="sd">            The ids of the requested atoms.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">sql</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s1">&#39;SELECT at.id&#39;</span>
+            <span class="s1">&#39;  FROM atom as at, coordinates as co, atomset_atom as aa&#39;</span>
+            <span class="s1">&#39; WHERE at.id == aa.atom AND aa.atomset = ? AND co.atom = at.id&#39;</span>
+        <span class="p">)</span>
+
+        <span class="n">parameters</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">atomset</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">grouped</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">op</span> <span class="o">==</span> <span class="s1">&#39;==&#39;</span><span class="p">:</span>
+                    <span class="n">op</span> <span class="o">=</span> <span class="s1">&#39;=&#39;</span>
+                <span class="n">sql</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39; AND &quot;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s1">&quot; </span><span class="si">{</span><span class="n">op</span><span class="si">}</span><span class="s1"> ?&#39;</span>
+                <span class="n">parameters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">parameters</span><span class="p">)]</span></div>
+
+<div class="viewcode-block" id="_Atoms.get_coordinates"><a class="viewcode-back" href="../../molsystem.html#molsystem.atoms._Atoms.get_coordinates">[docs]</a>    <span class="k">def</span> <span class="nf">get_coordinates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fractionals</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">in_cell</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">as_array</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the coordinates optionally translated back into the principal</span>
+<span class="sd">        unit cell.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        fractionals : bool = True</span>
+<span class="sd">            Return the coordinates as fractional coordinates for periodic</span>
+<span class="sd">            systems. Non-periodic systems always use Cartesian coordinates.</span>
+<span class="sd">        in_cell : bool, str = False</span>
+<span class="sd">            Whether to translate the atoms into the unit cell, and if so</span>
+<span class="sd">            whether to do so by molecule or just atoms.</span>
+<span class="sd">        as_array : bool = False</span>
+<span class="sd">            Whether to return the results as a numpy array or as a list of</span>
+<span class="sd">            lists (the default).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        abc : [N][float*3]</span>
+<span class="sd">            The coordinates, either Cartesian or fractional</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">xyz</span> <span class="o">=</span> <span class="p">[[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;y&#39;</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;z&#39;</span><span class="p">]]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">()]</span>
+
+        <span class="n">periodicity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">periodicity</span>
+        <span class="k">if</span> <span class="n">periodicity</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">as_array</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">xyz</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">xyz</span>
+
+        <span class="n">cell</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">cell</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">in_cell</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="s1">&#39;molecule&#39;</span> <span class="ow">in</span> <span class="n">in_cell</span><span class="p">:</span>
+            <span class="c1"># Need fractionals...</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">coordinate_system</span> <span class="o">==</span> <span class="s1">&#39;Cartesian&#39;</span><span class="p">:</span>
+                <span class="n">UVW</span> <span class="o">=</span> <span class="n">cell</span><span class="o">.</span><span class="n">to_fractionals</span><span class="p">(</span><span class="n">xyz</span><span class="p">,</span> <span class="n">as_array</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">xyz</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="n">UVW</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">xyz</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">UVW</span> <span class="o">=</span> <span class="n">xyz</span>
+
+            <span class="n">molecules</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">find_molecules</span><span class="p">(</span><span class="n">as_indices</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">indices</span> <span class="ow">in</span> <span class="n">molecules</span><span class="p">:</span>
+                <span class="n">indices</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">])</span>
+                <span class="n">uvw_mol</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">UVW</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">center</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">uvw_mol</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">delta</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">center</span><span class="p">)</span>
+                <span class="n">uvw_mol</span> <span class="o">-=</span> <span class="n">delta</span>
+                <span class="n">numpy</span><span class="o">.</span><span class="n">put_along_axis</span><span class="p">(</span>
+                    <span class="n">UVW</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">uvw_mol</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">fractionals</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">as_array</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">UVW</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">UVW</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">cell</span><span class="o">.</span><span class="n">to_cartesians</span><span class="p">(</span><span class="n">UVW</span><span class="p">,</span> <span class="n">as_array</span><span class="o">=</span><span class="n">as_array</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">in_cell</span><span class="p">:</span>
+            <span class="c1"># Need fractionals...</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">coordinate_system</span> <span class="o">==</span> <span class="s1">&#39;Cartesian&#39;</span><span class="p">:</span>
+                <span class="n">UVW</span> <span class="o">=</span> <span class="n">cell</span><span class="o">.</span><span class="n">to_fractionals</span><span class="p">(</span><span class="n">xyz</span><span class="p">,</span> <span class="n">as_array</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">xyz</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="n">UVW</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">xyz</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">UVW</span> <span class="o">=</span> <span class="n">xyz</span>
+            <span class="n">delta</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">UVW</span><span class="p">)</span>
+            <span class="n">UVW</span> <span class="o">-=</span> <span class="n">delta</span>
+            <span class="k">if</span> <span class="n">fractionals</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">as_array</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">UVW</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">UVW</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">cell</span><span class="o">.</span><span class="n">to_cartesians</span><span class="p">(</span><span class="n">UVW</span><span class="p">,</span> <span class="n">as_array</span><span class="o">=</span><span class="n">as_array</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">fractionals</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">coordinate_system</span> <span class="o">==</span> <span class="s1">&#39;Cartesian&#39;</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">cell</span><span class="o">.</span><span class="n">to_fractionals</span><span class="p">(</span><span class="n">xyz</span><span class="p">,</span> <span class="n">as_array</span><span class="o">=</span><span class="n">as_array</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">as_array</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">xyz</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">xyz</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">coordinate_system</span> <span class="o">==</span> <span class="s1">&#39;fractional&#39;</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">cell</span><span class="o">.</span><span class="n">to_cartesians</span><span class="p">(</span><span class="n">xyz</span><span class="p">,</span> <span class="n">as_array</span><span class="o">=</span><span class="n">as_array</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">as_array</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">xyz</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">xyz</span></div>
+
+<div class="viewcode-block" id="_Atoms.get_n_atoms"><a class="viewcode-back" href="../../molsystem.html#molsystem.atoms._Atoms.get_n_atoms">[docs]</a>    <span class="k">def</span> <span class="nf">get_n_atoms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the number of atoms meeting the cirteria.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        args : [str]</span>
+<span class="sd">            Added selection criteria for the SQL, one word at a time.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        int</span>
+<span class="sd">            The number of atoms matching the criteria.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT COUNT(*)</span>
+<span class="s2">          FROM atom as at, coordinates as co</span>
+<span class="s2">         WHERE co.atom = at.id</span>
+<span class="s2">           AND at.id IN (SELECT atom FROM atomset_atom WHERE atomset = ?)</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+
+        <span class="n">parameters</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">atomset</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">grouped</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">op</span> <span class="o">==</span> <span class="s1">&#39;==&#39;</span><span class="p">:</span>
+                    <span class="n">op</span> <span class="o">=</span> <span class="s1">&#39;=&#39;</span>
+                <span class="n">sql</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39; AND &quot;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s1">&quot; </span><span class="si">{</span><span class="n">op</span><span class="si">}</span><span class="s1"> ?&#39;</span>
+                <span class="n">parameters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">parameters</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="_Atoms.set_coordinates"><a class="viewcode-back" href="../../molsystem.html#molsystem.atoms._Atoms.set_coordinates">[docs]</a>    <span class="k">def</span> <span class="nf">set_coordinates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xyz</span><span class="p">,</span> <span class="n">fractionals</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Set the coordinates to new values.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        fractionals : bool = True</span>
+<span class="sd">            The coordinates are fractional coordinates for periodic</span>
+<span class="sd">            systems. Ignored for non-periodic systems.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">as_array</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">xyz</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+
+        <span class="n">x_column</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_column</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">)</span>
+        <span class="n">y_column</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_column</span><span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">)</span>
+        <span class="n">z_column</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_column</span><span class="p">(</span><span class="s1">&#39;z&#39;</span><span class="p">)</span>
+
+        <span class="n">xs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">ys</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">zs</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">periodicity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">periodicity</span>
+        <span class="n">coordinate_system</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">coordinate_system</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="n">periodicity</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span>
+            <span class="p">(</span><span class="n">coordinate_system</span> <span class="o">==</span> <span class="s1">&#39;Cartesian&#39;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">fractionals</span><span class="p">)</span> <span class="ow">or</span>
+            <span class="p">(</span><span class="n">coordinate_system</span> <span class="o">==</span> <span class="s1">&#39;fractional&#39;</span> <span class="ow">and</span> <span class="n">fractionals</span><span class="p">)</span>
+        <span class="p">):</span>
+            <span class="k">if</span> <span class="n">as_array</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="ow">in</span> <span class="n">xyz</span><span class="o">.</span><span class="n">tolist</span><span class="p">():</span>
+                    <span class="n">xs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+                    <span class="n">ys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+                    <span class="n">zs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="ow">in</span> <span class="n">xyz</span><span class="p">:</span>
+                    <span class="n">xs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+                    <span class="n">ys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+                    <span class="n">zs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cell</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">cell</span>
+            <span class="k">if</span> <span class="n">coordinate_system</span> <span class="o">==</span> <span class="s1">&#39;fractional&#39;</span><span class="p">:</span>
+                <span class="c1"># Convert coordinates to fractionals</span>
+                <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="ow">in</span> <span class="n">cell</span><span class="o">.</span><span class="n">to_fractionals</span><span class="p">(</span><span class="n">xyz</span><span class="p">):</span>
+                    <span class="n">xs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+                    <span class="n">ys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+                    <span class="n">zs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="ow">in</span> <span class="n">cell</span><span class="o">.</span><span class="n">to_cartesians</span><span class="p">(</span><span class="n">xyz</span><span class="p">):</span>
+                    <span class="n">xs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+                    <span class="n">ys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+                    <span class="n">zs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+        <span class="n">x_column</span><span class="p">[</span><span class="mi">0</span><span class="p">:]</span> <span class="o">=</span> <span class="n">xs</span>
+        <span class="n">y_column</span><span class="p">[</span><span class="mi">0</span><span class="p">:]</span> <span class="o">=</span> <span class="n">ys</span>
+        <span class="n">z_column</span><span class="p">[</span><span class="mi">0</span><span class="p">:]</span> <span class="o">=</span> <span class="n">zs</span></div>
+
+<div class="viewcode-block" id="_Atoms.get_column"><a class="viewcode-back" href="../../molsystem.html#molsystem.atoms._Atoms.get_column">[docs]</a>    <span class="k">def</span> <span class="nf">get_column</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Get a Column object with the requested data</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        key : str</span>
+<span class="sd">            The attribute to get.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Column</span>
+<span class="sd">            A Column object containing the data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atom_table</span><span class="o">.</span><span class="n">attributes</span><span class="p">:</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="sa">f</span><span class="s1">&#39;SELECT at.rowid, at.&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">&quot;&#39;</span>
+                <span class="s1">&#39;   FROM atom as at, atomset_atom as aa&#39;</span>
+                <span class="sa">f</span><span class="s1">&#39; WHERE at.id = aa.atom AND aa.atomset = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">atomset</span><span class="si">}</span><span class="s1">&#39;</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">_Column</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_atom_table</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">sql</span><span class="o">=</span><span class="n">sql</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates_table</span><span class="o">.</span><span class="n">attributes</span><span class="p">:</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="sa">f</span><span class="s1">&#39;SELECT co.rowid, co.&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">&quot;&#39;</span>
+                <span class="s1">&#39;   FROM atom as at,&#39;</span>
+                <span class="s1">&#39;        coordinates as co,&#39;</span>
+                <span class="s1">&#39;        atomset_atom as aa&#39;</span>
+                <span class="s1">&#39;  WHERE co.atom = at.id AND at.id = aa.atom&#39;</span>
+                <span class="sa">f</span><span class="s1">&#39;   AND aa.atomset = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">atomset</span><span class="si">}</span><span class="s1">&#39;</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">_Column</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_coordinates_table</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">sql</span><span class="o">=</span><span class="n">sql</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&#39; not in atoms&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_Atoms.get_column_data"><a class="viewcode-back" href="../../molsystem.html#molsystem.atoms._Atoms.get_column_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_column_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Return a column of data from the table.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        key : str</span>
+<span class="sd">            The attribute to get.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Column</span>
+<span class="sd">            A Column object containing the data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atom_table</span><span class="o">.</span><span class="n">attributes</span><span class="p">:</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="sa">f</span><span class="s1">&#39;SELECT at.&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">&quot;&#39;</span>
+                <span class="s1">&#39;   FROM atom as at, atomset_atom as aa&#39;</span>
+                <span class="sa">f</span><span class="s1">&#39; WHERE at.id = aa.atom AND aa.atomset = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">atomset</span><span class="si">}</span><span class="s1">&#39;</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">)]</span>
+        <span class="k">elif</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates_table</span><span class="o">.</span><span class="n">attributes</span><span class="p">:</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="sa">f</span><span class="s1">&#39;SELECT co.&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">&quot;&#39;</span>
+                <span class="s1">&#39;   FROM atom as at,&#39;</span>
+                <span class="s1">&#39;        coordinates as co,&#39;</span>
+                <span class="s1">&#39;        atomset_atom as aa&#39;</span>
+                <span class="s1">&#39;  WHERE co.atom = at.id AND at.id = aa.atom&#39;</span>
+                <span class="sa">f</span><span class="s1">&#39;   AND aa.atomset = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">atomset</span><span class="si">}</span><span class="s1">&#39;</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&#39; not in atoms&quot;</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_get_n_rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the total number of rows represented in the arguments.&quot;&quot;&quot;</span>
+        <span class="n">n_rows</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">lengths</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">&quot; is not an attribute of the atoms.&#39;</span><span class="p">)</span>
+            <span class="n">length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">length_of_values</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="n">lengths</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">length</span>
+
+            <span class="k">if</span> <span class="n">n_rows</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">n_rows</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">length</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">length</span>
+
+            <span class="k">if</span> <span class="n">length</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">length</span> <span class="o">!=</span> <span class="n">n_rows</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">n_rows</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">n_rows</span> <span class="o">=</span> <span class="n">length</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span>
+                        <span class="s1">&#39;key &quot;</span><span class="si">{}</span><span class="s1">&quot; has the wrong number of values, &#39;</span>
+                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="o">+</span>
+                        <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">. Should be 1 or the number of atoms (</span><span class="si">{}</span><span class="s1">).&#39;</span>
+                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="n">n_rows</span><span class="p">)</span>
+                    <span class="p">)</span>
+        <span class="k">return</span> <span class="n">n_rows</span><span class="p">,</span> <span class="n">lengths</span>
+
+<div class="viewcode-block" id="_Atoms.length_of_values"><a class="viewcode-back" href="../../molsystem.html#molsystem.atoms._Atoms.length_of_values">[docs]</a>    <span class="k">def</span> <span class="nf">length_of_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Return the length of the values argument.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        values : Any</span>
+<span class="sd">            The values, which might be a string, single value, list, tuple,</span>
+<span class="sd">            etc.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        length : int</span>
+<span class="sd">            The length of the values. 0 indicates a scalar</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">return</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                <span class="k">return</span> <span class="mi">0</span></div>
+
+<div class="viewcode-block" id="_Atoms.delete"><a class="viewcode-back" href="../../molsystem.html#molsystem.atoms._Atoms.delete">[docs]</a>    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atoms</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Delete the atoms listed</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        atoms : [int]</span>
+<span class="sd">            The list of atoms to delete, or &#39;all&#39; or &#39;*&#39;</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Delete the listed atoms, which will cascade to delete coordinates...</span>
+        <span class="k">if</span> <span class="n">atoms</span> <span class="o">==</span> <span class="s1">&#39;all&#39;</span> <span class="ow">or</span> <span class="n">atoms</span> <span class="o">==</span> <span class="s1">&#39;*&#39;</span><span class="p">:</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            DELETE FROM atom</span>
+<span class="s2">             WHERE id IN (SELECT atom FROM atomset_atom WHERE atomset = ?)</span>
+<span class="s2">            &quot;&quot;&quot;</span>
+            <span class="n">parameters</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atomset</span><span class="p">,)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">parameters</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            DELETE FROM atom</span>
+<span class="s2">             WHERE id = ?</span>
+<span class="s2">               AND id IN (SELECT atom FROM atomset_atom WHERE atomset = ?)</span>
+<span class="s2">            &quot;&quot;&quot;</span>
+            <span class="n">parameters</span> <span class="o">=</span> <span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">atomset</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">executemany</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">parameters</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_Atoms.to_dataframe"><a class="viewcode-back" href="../../molsystem.html#molsystem.atoms._Atoms.to_dataframe">[docs]</a>    <span class="k">def</span> <span class="nf">to_dataframe</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the contents of the table as a Pandas Dataframe.&quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+        <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">rows</span><span class="o">.</span><span class="n">description</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span>
+
+        <span class="n">df</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">orient</span><span class="o">=</span><span class="s1">&#39;index&#39;</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">columns</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">df</span></div>
+
+    <span class="k">def</span> <span class="nf">_columns</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The list of columns across the atom and coordinates table.</span>
+
+<span class="sd">        Uses &#39;at&#39; and &#39;co&#39; as the shorthand for the fullt table names.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">atom_columns</span> <span class="o">=</span> <span class="p">[</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_atom_table</span><span class="o">.</span><span class="n">attributes</span><span class="p">]</span>
+        <span class="n">coordinates_columns</span> <span class="o">=</span> <span class="p">[</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_coordinates_table</span><span class="o">.</span><span class="n">attributes</span><span class="p">]</span>
+        <span class="n">coordinates_columns</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s1">&#39;atom&#39;</span><span class="p">)</span>
+
+        <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;at.&quot;</span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s1">&quot;&#39;</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">atom_columns</span><span class="p">]</span>
+        <span class="n">columns</span> <span class="o">+=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;co.&quot;</span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s1">&quot;&#39;</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">coordinates_columns</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">columns</span></div>
+
+
+<div class="viewcode-block" id="_SubsetAtoms"><a class="viewcode-back" href="../../molsystem.html#molsystem.atoms._SubsetAtoms">[docs]</a><span class="k">class</span> <span class="nc">_SubsetAtoms</span><span class="p">(</span><span class="n">_Atoms</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;:meta public:</span>
+<span class="sd">    The atoms in a subset.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    configuration : _Configuration</span>
+<span class="sd">        The configuration of interest.</span>
+<span class="sd">    subset_id : int</span>
+<span class="sd">        The id of the subset.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    template_order : bool</span>
+<span class="sd">        Whether to return atoms and properties in the order of the template</span>
+<span class="sd">        if the template is full. Defaults to True.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">configuration</span><span class="p">,</span> <span class="n">subset_id</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sid</span> <span class="o">=</span> <span class="n">subset_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">template_order</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># Caching</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_template_id</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_template</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">configuration</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">subset_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The subset for these atoms.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sid</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">n_atoms</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;The number of atoms in this configuration.&quot;&quot;&quot;</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT COUNT(*)</span>
+<span class="s2">          FROM atomset_atom</span>
+<span class="s2">         WHERE atomset = ?</span>
+<span class="s2">           AND atom IN (SELECT atom FROM subset_atom WHERE subset = ?)</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atomset</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">subset_id</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ids</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The ids of atoms in this subset.&quot;&quot;&quot;</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT atom</span>
+<span class="s2">          FROM subset_atom</span>
+<span class="s2">         WHERE subset = ?</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="o">.</span><span class="n">is_full</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_order</span><span class="p">:</span>
+            <span class="n">sql</span> <span class="o">+=</span> <span class="s2">&quot;ORDER BY templateatom&quot;</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subset_id</span><span class="p">,))]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">template</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The template for this subset.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_template</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_template</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="o">.</span><span class="n">templates</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">template_id</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_template</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">template_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The id of the template for this subset.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_template_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;SELECT template FROM SUBSET WHERE id = ?&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">subset_id</span><span class="p">,))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_template_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_template_id</span>
+
+<div class="viewcode-block" id="_SubsetAtoms.add"><a class="viewcode-back" href="../../molsystem.html#molsystem.atoms._SubsetAtoms.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add atoms to the subset.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ids : [int]</span>
+<span class="sd">            The ids of the atoms to add. They are silently ignored if</span>
+<span class="sd">            they are already in the subset.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If this subset has a full template or if an atom is not in the</span>
+<span class="sd">            configuration.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Check if the template has a template configuration</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="o">.</span><span class="n">is_full</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s1">&#39;Cannot add atoms to a subset for a full template.&#39;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Remove any ids already in the subset</span>
+        <span class="n">atom_ids</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ids</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">aid</span> <span class="ow">in</span> <span class="n">atom_ids</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">ids</span><span class="p">):</span>
+            <span class="n">ids</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">aid</span><span class="p">)</span>
+
+        <span class="n">sa</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="p">[</span><span class="s1">&#39;subset_atom&#39;</span><span class="p">]</span>
+        <span class="n">sa</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">subset_id</span><span class="p">,</span> <span class="n">atom</span><span class="o">=</span><span class="n">ids</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_SubsetAtoms.append"><a class="viewcode-back" href="../../molsystem.html#molsystem.atoms._SubsetAtoms.append">[docs]</a>    <span class="k">def</span> <span class="nf">append</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Append one or more atoms.</span>
+
+<span class="sd">        This is not allowed for a subset.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        RuntimeError</span>
+<span class="sd">            Adding atoms to a configuration is not allowed from a subset.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+            <span class="s1">&#39;Adding atoms to a configuration is not allowed from a subset.&#39;</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="_SubsetAtoms.atoms"><a class="viewcode-back" href="../../molsystem.html#molsystem.atoms._SubsetAtoms.atoms">[docs]</a>    <span class="k">def</span> <span class="nf">atoms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return an iterator over the atoms.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        args : [str]</span>
+<span class="sd">            Added selection criteria for the SQL, one word at a time.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        sqlite3.Cursor</span>
+<span class="sd">            A cursor that returns sqlite3.Row objects for the atoms.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_columns</span><span class="p">()</span>
+        <span class="n">column_defs</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span>
+
+        <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT </span><span class="si">{</span><span class="n">column_defs</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">          FROM atom as at, coordinates as co, subset_atom as sa</span>
+<span class="s2">         WHERE co.atom = at.id</span>
+<span class="s2">           AND at.id = sa.atom</span>
+<span class="s2">           AND sa.subset = ?</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+
+        <span class="n">parameters</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">subset_id</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">grouped</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">op</span> <span class="o">==</span> <span class="s1">&#39;==&#39;</span><span class="p">:</span>
+                    <span class="n">op</span> <span class="o">=</span> <span class="s1">&#39;=&#39;</span>
+                <span class="n">sql</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39; AND &quot;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s1">&quot; </span><span class="si">{</span><span class="n">op</span><span class="si">}</span><span class="s1"> ?&#39;</span>
+                <span class="n">parameters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="o">.</span><span class="n">is_full</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_order</span><span class="p">:</span>
+            <span class="n">sql</span> <span class="o">+=</span> <span class="s2">&quot;ORDER BY sa.templateatom&quot;</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">parameters</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_SubsetAtoms.get_n_atoms"><a class="viewcode-back" href="../../molsystem.html#molsystem.atoms._SubsetAtoms.get_n_atoms">[docs]</a>    <span class="k">def</span> <span class="nf">get_n_atoms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the number of atoms meeting the cirteria.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        args : [str]</span>
+<span class="sd">            Added selection criteria for the SQL, one word at a time.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        int</span>
+<span class="sd">            The number of atoms matching the criteria.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT COUNT(*)</span>
+<span class="s2">          FROM atom as at, coordinates as co, subset_atom as sa</span>
+<span class="s2">         WHERE co.atom = at.id</span>
+<span class="s2">           AND at.id = sa.atom</span>
+<span class="s2">           AND sa.subset = ?</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="n">parameters</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">subset_id</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">grouped</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">op</span> <span class="o">==</span> <span class="s1">&#39;==&#39;</span><span class="p">:</span>
+                    <span class="n">op</span> <span class="o">=</span> <span class="s1">&#39;=&#39;</span>
+                <span class="n">sql</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39; AND &quot;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s1">&quot; </span><span class="si">{</span><span class="n">op</span><span class="si">}</span><span class="s1"> ?&#39;</span>
+                <span class="n">parameters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">parameters</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="_SubsetAtoms.diff"><a class="viewcode-back" href="../../molsystem.html#molsystem.atoms._SubsetAtoms.diff">[docs]</a>    <span class="k">def</span> <span class="nf">diff</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Difference between these atoms and another</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        other : _Atoms</span>
+<span class="sd">            The other atoms to diff against</span>
+
+<span class="sd">        Result</span>
+<span class="sd">        ------</span>
+<span class="sd">        result : Dict</span>
+<span class="sd">            The differences, described in a dictionary</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="_SubsetAtoms.get_column"><a class="viewcode-back" href="../../molsystem.html#molsystem.atoms._SubsetAtoms.get_column">[docs]</a>    <span class="k">def</span> <span class="nf">get_column</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Get a Column object with the requested data</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        key : str</span>
+<span class="sd">            The attribute to get.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Column</span>
+<span class="sd">            A Column object containing the data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atom_table</span><span class="o">.</span><span class="n">attributes</span><span class="p">:</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT at.rowid, at.&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="s2">              FROM atom as at, subset_atom as sa</span>
+<span class="s2">             WHERE at.id = sa.atom</span>
+<span class="s2">               AND sa.subset = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">subset_id</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">            &quot;&quot;&quot;</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="o">.</span><span class="n">is_full</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_order</span><span class="p">:</span>
+                <span class="n">sql</span> <span class="o">+=</span> <span class="s2">&quot;ORDER BY sa.templateatom&quot;</span>
+            <span class="k">return</span> <span class="n">_Column</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_atom_table</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">sql</span><span class="o">=</span><span class="n">sql</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates_table</span><span class="o">.</span><span class="n">attributes</span><span class="p">:</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT co.rowid, co.&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="s2">              FROM coordinates as co, subset_atom as sa</span>
+<span class="s2">             WHERE co.atom = sa.atom</span>
+<span class="s2">               AND sa.subset = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">subset_id</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">            &quot;&quot;&quot;</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="o">.</span><span class="n">is_full</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_order</span><span class="p">:</span>
+                <span class="n">sql</span> <span class="o">+=</span> <span class="s2">&quot;ORDER BY sa.templateatom&quot;</span>
+            <span class="k">return</span> <span class="n">_Column</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_coordinates_table</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">sql</span><span class="o">=</span><span class="n">sql</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&#39; not in atoms&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_SubsetAtoms.get_column_data"><a class="viewcode-back" href="../../molsystem.html#molsystem.atoms._SubsetAtoms.get_column_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_column_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Return a column of data from the table.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        key : str</span>
+<span class="sd">            The attribute to get.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Column</span>
+<span class="sd">            A Column object containing the data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atom_table</span><span class="o">.</span><span class="n">attributes</span><span class="p">:</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT at.&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="s2">              FROM atom as at, subset_atom as sa</span>
+<span class="s2">             WHERE at.id = sa.atom</span>
+<span class="s2">               AND sa.subset = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">subset_id</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">            &quot;&quot;&quot;</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="o">.</span><span class="n">is_full</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_order</span><span class="p">:</span>
+                <span class="n">sql</span> <span class="o">+=</span> <span class="s2">&quot;ORDER BY sa.templateatom&quot;</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">)]</span>
+        <span class="k">elif</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordinates_table</span><span class="o">.</span><span class="n">attributes</span><span class="p">:</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT co.&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="s2">              FROM coordinates as co, subset_atom as sa</span>
+<span class="s2">             WHERE co.atom = sa.atom</span>
+<span class="s2">               AND sa.subset = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">subset_id</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">            &quot;&quot;&quot;</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="o">.</span><span class="n">is_full</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_order</span><span class="p">:</span>
+                <span class="n">sql</span> <span class="o">+=</span> <span class="s2">&quot;ORDER BY sa.templateatom&quot;</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&#39; not in atoms&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_SubsetAtoms.get_ids"><a class="viewcode-back" href="../../molsystem.html#molsystem.atoms._SubsetAtoms.get_ids">[docs]</a>    <span class="k">def</span> <span class="nf">get_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The ids of the atoms.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        args : [str]</span>
+<span class="sd">            Added selection criteria for the SQL, one word at a time.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        [int]</span>
+<span class="sd">            The ids of the requested atoms.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT at.id</span>
+<span class="s2">          FROM atom as at, coordinates as co, subset_atom as sa</span>
+<span class="s2">         WHERE at.id = sa.atom</span>
+<span class="s2">           AND sa.subset = ?</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+
+        <span class="n">parameters</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">subset_id</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">grouped</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">op</span> <span class="o">==</span> <span class="s1">&#39;==&#39;</span><span class="p">:</span>
+                    <span class="n">op</span> <span class="o">=</span> <span class="s1">&#39;=&#39;</span>
+                <span class="n">sql</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39; AND &quot;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s1">&quot; </span><span class="si">{</span><span class="n">op</span><span class="si">}</span><span class="s1"> ?&#39;</span>
+                <span class="n">parameters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="o">.</span><span class="n">is_full</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_order</span><span class="p">:</span>
+            <span class="n">sql</span> <span class="o">+=</span> <span class="s2">&quot;ORDER BY sa.templateatom&quot;</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">parameters</span><span class="p">)]</span></div>
+
+<div class="viewcode-block" id="_SubsetAtoms.delete"><a class="viewcode-back" href="../../molsystem.html#molsystem.atoms._SubsetAtoms.delete">[docs]</a>    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atoms</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Delete the atoms listed</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        atoms : [int]</span>
+<span class="sd">            The list of atoms to delete, or &#39;all&#39; or &#39;*&#39;</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="_SubsetAtoms.remove"><a class="viewcode-back" href="../../molsystem.html#molsystem.atoms._SubsetAtoms.remove">[docs]</a>    <span class="k">def</span> <span class="nf">remove</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Remove the given atoms from the subset.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ids : [int]</span>
+<span class="sd">            The ids of the atoms to delete.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If this subset has a full template or if an atom is not in the</span>
+<span class="sd">            subset.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Check if the template has a template configuration</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="o">.</span><span class="n">is_full</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s1">&#39;Cannot add atoms to a subset for a full template.&#39;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Check that the atoms are in this configuration!</span>
+        <span class="n">atom_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids</span>
+        <span class="k">for</span> <span class="n">aid</span> <span class="ow">in</span> <span class="n">ids</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">aid</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">atom_ids</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Atom id=</span><span class="si">{</span><span class="n">aid</span><span class="si">}</span><span class="s2"> is not in the subset.&quot;</span><span class="p">)</span>
+
+        <span class="n">parameters</span> <span class="o">=</span> <span class="p">[(</span><span class="n">_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">subset_id</span><span class="p">)</span> <span class="k">for</span> <span class="n">_id</span> <span class="ow">in</span> <span class="n">ids</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">executemany</span><span class="p">(</span>
+            <span class="s2">&quot;DELETE FROM subset_atom WHERE atom=? AND subset=?&quot;</span><span class="p">,</span> <span class="n">parameters</span>
+        <span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+
+    </p>
+  </div>
+
+<p>
+<div class="row">
+  <div class="column_left">
+    <a href="https://molssi.org/" target="_blank" title="Go to MolSSI in a new tab">
+      <img src="/_images/MolSSI.jpg" alt="The MolSSI" style="border:0;">
+    </a>
+  </div>
+  <div class="column">
+    &copy; Copyright 2020, the Molecular Sciences Software Institute,
+    which receives funding from the National Science Foundation under award ACI-1547580
+  </div>
+  <div class="column_right">
+    <a href="https://nsf.gov/" target="_blank" title="Go to the NSF in a new tab">
+      <img src="/_images/NSF_4-Color_bitmap_Logo.png" alt="The NSF" style="border:0;">
+    </a>
+  </div>
+</div>
+
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

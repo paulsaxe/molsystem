@@ -1,0 +1,840 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>molsystem.cell &mdash; MolSystem Step 2020.12.5+21.g1f45da7 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/custom.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> MolSystem Step
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2020.12.5+21.g1f45da7
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../user/index.html">User Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developer/index.html">Developer Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../authors.html">Credits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">History</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://molssi-seamm.github.io">Main SEAMM documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">MolSystem Step</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>molsystem.cell</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for molsystem.cell</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">math</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="cos"><a class="viewcode-back" href="../../molsystem.html#molsystem.cell.cos">[docs]</a><span class="k">def</span> <span class="nf">cos</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">value</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="sin"><a class="viewcode-back" href="../../molsystem.html#molsystem.cell.sin">[docs]</a><span class="k">def</span> <span class="nf">sin</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">radians</span><span class="p">(</span><span class="n">value</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="Cell"><a class="viewcode-back" href="../../molsystem.html#molsystem.cell.Cell">[docs]</a><span class="k">class</span> <span class="nc">Cell</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A class to handle cell parameters and their transformations.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Allow [] to access the data!&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Allow x[key] access to the data&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Allow iteration over the object&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;The len() command&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a boolean if this object is equal to another&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1.0e-12</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The representation of this object&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The pretty string representation of this object&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">a</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The length of the first cell vector.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="nd">@a</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">a</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">b</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The length of the second cell vector.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="nd">@b</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">b</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The length of the third cell vector.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+
+    <span class="nd">@c</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">c</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">alpha</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The angle between b and c.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+
+    <span class="nd">@alpha</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">alpha</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">beta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The angle between a and c.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+
+    <span class="nd">@beta</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">beta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">gamma</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The angle between a and b.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+
+    <span class="nd">@gamma</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">gamma</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The cell parameters as a list.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">)</span>
+
+    <span class="nd">@parameters</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">6</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;parameters must be of length 6&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">volume</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The volume of the cell.&quot;&quot;&quot;</span>
+        <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span>
+        <span class="c1"># Roundoff errors!</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">cos</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span> <span class="o">*</span> <span class="n">cos</span><span class="p">(</span><span class="n">beta</span><span class="p">)</span> <span class="o">*</span> <span class="n">cos</span><span class="p">(</span><span class="n">gamma</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="o">&lt;</span> <span class="mf">0.0</span> <span class="ow">and</span> <span class="nb">abs</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">1.0e-8</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">a</span> <span class="o">*</span> <span class="n">b</span> <span class="o">*</span> <span class="n">c</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">cos</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="n">cos</span><span class="p">(</span><span class="n">beta</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="n">cos</span><span class="p">(</span><span class="n">gamma</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span>
+            <span class="mi">2</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="Cell.equal"><a class="viewcode-back" href="../../molsystem.html#molsystem.cell.Cell.equal">[docs]</a>    <span class="k">def</span> <span class="nf">equal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1.0e-6</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Check if we are equal to another iterable to within a tolerance.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        other : iterable</span>
+<span class="sd">            The other object to check against</span>
+<span class="sd">        tol : float = 1.0e-06</span>
+<span class="sd">            The tolerance for comparing floating point numbers.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        equals : bool</span>
+<span class="sd">            Boolean indicating whether the two are equal.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">6</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">i</span> <span class="o">-</span> <span class="n">j</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">tol</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="Cell.to_cartesians"><a class="viewcode-back" href="../../molsystem.html#molsystem.cell.Cell.to_cartesians">[docs]</a>    <span class="k">def</span> <span class="nf">to_cartesians</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">uvw</span><span class="p">,</span> <span class="n">as_array</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Convert fraction coordinates to Cartesians</span>
+
+<span class="sd">        see https://en.wikipedia.org/wiki/Fractional_coordinates for a</span>
+<span class="sd">        description.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        uvw : [N][3*float] or ndarray</span>
+<span class="sd">            The fractional coordinates.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        xyz : [N][float*3] or ndarray</span>
+<span class="sd">            The Cartesian coordinates.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">uvw</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">UVW</span> <span class="o">=</span> <span class="n">uvw</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">UVW</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">uvw</span><span class="p">)</span>
+
+        <span class="n">T</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_cartesians_transform</span><span class="p">(</span><span class="n">as_array</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">XYZ</span> <span class="o">=</span> <span class="n">UVW</span> <span class="o">@</span> <span class="n">T</span>
+
+        <span class="k">if</span> <span class="n">as_array</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">XYZ</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">XYZ</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Cell.to_cartesians_transform"><a class="viewcode-back" href="../../molsystem.html#molsystem.cell.Cell.to_cartesians_transform">[docs]</a>    <span class="k">def</span> <span class="nf">to_cartesians_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">as_array</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Matrix to convert fractional coordinates to Cartesian.</span>
+
+<span class="sd">        see https://en.wikipedia.org/wiki/Fractional_coordinates for a</span>
+<span class="sd">        description.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        as_array : bool = False</span>
+<span class="sd">            Whether to return a numpy array or Python lists</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        transform : [N][float*3] or ndarray</span>
+<span class="sd">            The transformation matrix</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span>
+
+        <span class="n">ca</span> <span class="o">=</span> <span class="n">cos</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span>
+        <span class="n">cb</span> <span class="o">=</span> <span class="n">cos</span><span class="p">(</span><span class="n">beta</span><span class="p">)</span>
+        <span class="n">cg</span> <span class="o">=</span> <span class="n">cos</span><span class="p">(</span><span class="n">gamma</span><span class="p">)</span>
+        <span class="n">sg</span> <span class="o">=</span> <span class="n">sin</span><span class="p">(</span><span class="n">gamma</span><span class="p">)</span>
+
+        <span class="n">V</span> <span class="o">=</span> <span class="n">a</span> <span class="o">*</span> <span class="n">b</span> <span class="o">*</span> <span class="n">c</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">ca</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="n">cb</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="n">cg</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">ca</span> <span class="o">*</span> <span class="n">cb</span> <span class="o">*</span> <span class="n">cg</span><span class="p">)</span>
+        <span class="c1"># Transpose of ...</span>
+        <span class="c1"># [a, b * cg, c * cb],</span>
+        <span class="c1"># [0, b * sg, c * (ca - cb * cg) / sg],</span>
+        <span class="c1"># [0, 0, V / (a * b * sg)]</span>
+        <span class="n">T</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="p">[</span>
+                    <span class="n">a</span><span class="p">,</span>
+                    <span class="mi">0</span><span class="p">,</span>
+                    <span class="mi">0</span>
+                <span class="p">],</span>
+                <span class="p">[</span>
+                    <span class="n">b</span> <span class="o">*</span> <span class="n">cg</span><span class="p">,</span>
+                    <span class="n">b</span> <span class="o">*</span> <span class="n">sg</span><span class="p">,</span>
+                    <span class="mi">0</span>
+                <span class="p">],</span>
+                <span class="p">[</span>
+                    <span class="n">c</span> <span class="o">*</span> <span class="n">cb</span><span class="p">,</span>
+                    <span class="n">c</span> <span class="o">*</span> <span class="p">(</span><span class="n">ca</span> <span class="o">-</span> <span class="n">cb</span> <span class="o">*</span> <span class="n">cg</span><span class="p">)</span> <span class="o">/</span> <span class="n">sg</span><span class="p">,</span>
+                    <span class="n">V</span> <span class="o">/</span> <span class="p">(</span><span class="n">a</span> <span class="o">*</span> <span class="n">b</span> <span class="o">*</span> <span class="n">sg</span><span class="p">)</span>
+                <span class="p">]</span>
+            <span class="p">]</span>  <span class="c1"># yapf: disable</span>
+
+        <span class="k">if</span> <span class="n">as_array</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">T</span></div>
+
+<div class="viewcode-block" id="Cell.to_fractionals"><a class="viewcode-back" href="../../molsystem.html#molsystem.cell.Cell.to_fractionals">[docs]</a>    <span class="k">def</span> <span class="nf">to_fractionals</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xyz</span><span class="p">,</span> <span class="n">as_array</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Convert Cartesian coordinates to fractional.</span>
+
+<span class="sd">        see https://en.wikipedia.org/wiki/Fractional_coordinates for a</span>
+<span class="sd">        description.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        xyz : [N][3*float] or ndarray</span>
+<span class="sd">            The Cartesian coordinates.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        uvw : [N][float*3] or ndarray</span>
+<span class="sd">            The ractional coordinates.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">xyz</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">XYZ</span> <span class="o">=</span> <span class="n">xyz</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">XYZ</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">xyz</span><span class="p">)</span>
+
+        <span class="n">T</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_fractionals_transform</span><span class="p">(</span><span class="n">as_array</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">UVW</span> <span class="o">=</span> <span class="n">XYZ</span> <span class="o">@</span> <span class="n">T</span>
+
+        <span class="k">if</span> <span class="n">as_array</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">UVW</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">UVW</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Cell.to_fractionals_transform"><a class="viewcode-back" href="../../molsystem.html#molsystem.cell.Cell.to_fractionals_transform">[docs]</a>    <span class="k">def</span> <span class="nf">to_fractionals_transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">as_array</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Matrix to convert Cartesian coordinates to fractional.</span>
+
+<span class="sd">        see https://en.wikipedia.org/wiki/Fractional_coordinates for a</span>
+<span class="sd">        description.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        as_array : bool = False</span>
+<span class="sd">            Whether to return a numpy array or Python lists</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        transform : [N][float*3] or ndarray</span>
+<span class="sd">            The transformation matrix</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span>
+
+        <span class="n">ca</span> <span class="o">=</span> <span class="n">cos</span><span class="p">(</span><span class="n">alpha</span><span class="p">)</span>
+        <span class="n">cb</span> <span class="o">=</span> <span class="n">cos</span><span class="p">(</span><span class="n">beta</span><span class="p">)</span>
+        <span class="n">cg</span> <span class="o">=</span> <span class="n">cos</span><span class="p">(</span><span class="n">gamma</span><span class="p">)</span>
+        <span class="n">sg</span> <span class="o">=</span> <span class="n">sin</span><span class="p">(</span><span class="n">gamma</span><span class="p">)</span>
+
+        <span class="n">V</span> <span class="o">=</span> <span class="n">a</span> <span class="o">*</span> <span class="n">b</span> <span class="o">*</span> <span class="n">c</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">ca</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="n">cb</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="n">cg</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">ca</span> <span class="o">*</span> <span class="n">cb</span> <span class="o">*</span> <span class="n">cg</span><span class="p">)</span>
+        <span class="c1"># Transpose...</span>
+        <span class="c1"># [1 / a, -cg / (a * sg), b * c * (ca * cg - cb) / (V * sg)],</span>
+        <span class="c1"># [0, 1 / (b * sg), a * c * (cb * cg - ca) / (V * sg)],</span>
+        <span class="c1"># [0, 0, a * b * sg / V]</span>
+        <span class="n">T</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="p">[</span>
+                    <span class="mi">1</span> <span class="o">/</span> <span class="n">a</span><span class="p">,</span>
+                    <span class="mi">0</span><span class="p">,</span>
+                    <span class="mi">0</span>
+                <span class="p">],</span>
+                <span class="p">[</span>
+                    <span class="o">-</span><span class="n">cg</span> <span class="o">/</span> <span class="p">(</span><span class="n">a</span> <span class="o">*</span> <span class="n">sg</span><span class="p">),</span>
+                    <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">b</span> <span class="o">*</span> <span class="n">sg</span><span class="p">),</span>
+                    <span class="mi">0</span>
+                <span class="p">],</span>
+                <span class="p">[</span>
+                    <span class="n">b</span> <span class="o">*</span> <span class="n">c</span> <span class="o">*</span> <span class="p">(</span><span class="n">ca</span> <span class="o">*</span> <span class="n">cg</span> <span class="o">-</span> <span class="n">cb</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">V</span> <span class="o">*</span> <span class="n">sg</span><span class="p">),</span>
+                    <span class="n">a</span> <span class="o">*</span> <span class="n">c</span> <span class="o">*</span> <span class="p">(</span><span class="n">cb</span> <span class="o">*</span> <span class="n">cg</span> <span class="o">-</span> <span class="n">ca</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">V</span> <span class="o">*</span> <span class="n">sg</span><span class="p">),</span>
+                    <span class="n">a</span> <span class="o">*</span> <span class="n">b</span> <span class="o">*</span> <span class="n">sg</span> <span class="o">/</span> <span class="n">V</span>
+                <span class="p">]</span>
+            <span class="p">]</span>  <span class="c1"># yapf: disable</span>
+
+        <span class="k">if</span> <span class="n">as_array</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">T</span></div></div>
+
+
+<div class="viewcode-block" id="_Cell"><a class="viewcode-back" href="../../molsystem.html#molsystem.cell._Cell">[docs]</a><span class="k">class</span> <span class="nc">_Cell</span><span class="p">(</span><span class="n">Cell</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A class for handling cell parameters as part of MolSystem.</span>
+
+<span class="sd">    Provides all the functionality of the Cell class, but keeps the cell</span>
+<span class="sd">    data in the database.</span>
+
+<span class="sd">    :meta public:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">configuration</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Initialize from the database.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        system_db : SystemDB</span>
+<span class="sd">            The SystemDB instance that we are working with.</span>
+<span class="sd">        _id : int</span>
+<span class="sd">            The id of this particular cell.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_configuration</span> <span class="o">=</span> <span class="n">configuration</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_system</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_configuration</span><span class="o">.</span><span class="n">system</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_system_db</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_system</span><span class="o">.</span><span class="n">system_db</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_id</span> <span class="o">=</span> <span class="n">configuration</span><span class="o">.</span><span class="n">cell_id</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+            <span class="s2">&quot;SELECT a, b, c, alpha, beta, gamma FROM cell WHERE id = ?&quot;</span><span class="p">,</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_id</span><span class="p">,)</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span> <span class="o">=</span> <span class="p">[</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()]</span>
+
+    <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Copy the tables to a backup for a &#39;with&#39; statement.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="p">[</span><span class="s2">&quot;cell&quot;</span><span class="p">]</span><span class="o">.</span><span class="fm">__enter__</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">etype</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">traceback</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Handle returning from a &#39;with&#39; statement.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">etype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">version</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">version</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="p">[</span><span class="s2">&quot;cell&quot;</span><span class="p">]</span><span class="o">.</span><span class="fm">__exit__</span><span class="p">(</span><span class="n">etype</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">traceback</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Allow x[key] access to the data&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cursor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="o">.</span><span class="n">cursor</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">db</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="o">.</span><span class="n">db</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">configuration</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the configuration.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_configuration</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The id of this cell.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_id</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">a</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The length of the first cell vector.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="nd">@a</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">a</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">b</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The length of the second cell vector.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="nd">@b</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">b</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The length of the third cell vector.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+
+    <span class="nd">@c</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">c</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">alpha</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The angle between b and c.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+
+    <span class="nd">@alpha</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">alpha</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">beta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The angle between a and c.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+
+    <span class="nd">@beta</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">beta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">gamma</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The angle between a and b.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+
+    <span class="nd">@gamma</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">gamma</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The cell parameters as a list.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">)</span>
+
+    <span class="nd">@parameters</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">6</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;parameters must be of length 6&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">system</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the System object that contains this cell.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_system</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">system_db</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the SystemDB object that contains this cell.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_system_db</span>
+
+<div class="viewcode-block" id="_Cell.diff"><a class="viewcode-back" href="../../molsystem.html#molsystem.cell._Cell.diff">[docs]</a>    <span class="k">def</span> <span class="nf">diff</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Difference between these cell and another</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        other : _Cell</span>
+<span class="sd">            The other cell to diff against</span>
+
+<span class="sd">        Result</span>
+<span class="sd">        ------</span>
+<span class="sd">        result : Dict</span>
+<span class="sd">            The differences, described in a dictionary</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># Check the columns</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_columns</span><span class="p">()</span>
+        <span class="n">other_columns</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">_columns</span><span class="p">()</span>
+
+        <span class="n">column_defs</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span>
+        <span class="n">other_column_defs</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">other_columns</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">columns</span> <span class="o">==</span> <span class="n">other_columns</span><span class="p">:</span>
+            <span class="n">column_def</span> <span class="o">=</span> <span class="n">column_defs</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">added</span> <span class="o">=</span> <span class="n">columns</span> <span class="o">-</span> <span class="n">other_columns</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">added</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">result</span><span class="p">[</span><span class="s1">&#39;columns added&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">added</span><span class="p">)</span>
+            <span class="n">deleted</span> <span class="o">=</span> <span class="n">other_columns</span> <span class="o">-</span> <span class="n">columns</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">deleted</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">result</span><span class="p">[</span><span class="s1">&#39;columns deleted&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">deleted</span><span class="p">)</span>
+
+            <span class="n">in_common</span> <span class="o">=</span> <span class="n">other_columns</span> <span class="o">&amp;</span> <span class="n">columns</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">in_common</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">column_def</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">in_common</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># No columns shared</span>
+                <span class="k">return</span> <span class="n">result</span>
+
+        <span class="c1"># Need to check the contents of the tables. See if they are in the same</span>
+        <span class="c1"># database or if we need to attach the other database temporarily.</span>
+        <span class="n">db</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span>
+        <span class="n">other_db</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">system_db</span>
+
+        <span class="n">detach</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">schema</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span>
+        <span class="k">if</span> <span class="n">db</span><span class="o">.</span><span class="n">filename</span> <span class="o">!=</span> <span class="n">other_db</span><span class="o">.</span><span class="n">filename</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">db</span><span class="o">.</span><span class="n">is_attached</span><span class="p">(</span><span class="n">other_db</span><span class="p">):</span>
+                <span class="n">other_schema</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">attached_as</span><span class="p">(</span><span class="n">other_db</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Attach the other system_db in order to do comparisons.</span>
+                <span class="n">other_schema</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">other_db</span><span class="p">)</span>
+                <span class="n">detach</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">other_schema</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">schema</span>
+
+        <span class="n">_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">id</span>
+        <span class="n">other_id</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">id</span>
+
+        <span class="n">changed</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">last</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT * FROM</span>
+<span class="s2">        (</span>
+<span class="s2">          SELECT </span><span class="si">{</span><span class="n">column_def</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">            FROM </span><span class="si">{</span><span class="n">other_schema</span><span class="si">}</span><span class="s2">.bond</span>
+<span class="s2">           WHERE id = </span><span class="si">{</span><span class="n">other_id</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">          EXCEPT</span>
+<span class="s2">          SELECT </span><span class="si">{</span><span class="n">column_def</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">            FROM </span><span class="si">{</span><span class="n">schema</span><span class="si">}</span><span class="s2">.bond</span>
+<span class="s2">           WHERE id = </span><span class="si">{</span><span class="n">_id</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">        )</span>
+<span class="s2">         UNION ALL</span>
+<span class="s2">        SELECT * FROM</span>
+<span class="s2">        (</span>
+<span class="s2">          SELECT </span><span class="si">{</span><span class="n">column_def</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">            FROM </span><span class="si">{</span><span class="n">schema</span><span class="si">}</span><span class="s2">.bond</span>
+<span class="s2">           WHERE id = </span><span class="si">{</span><span class="n">_id</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">          EXCEPT</span>
+<span class="s2">          SELECT </span><span class="si">{</span><span class="n">column_def</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">            FROM </span><span class="si">{</span><span class="n">other_schema</span><span class="si">}</span><span class="s2">.bond</span>
+<span class="s2">           WHERE id = </span><span class="si">{</span><span class="n">other_id</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">        )</span>
+<span class="s2">        ORDER BY id</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">last</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">last</span> <span class="o">=</span> <span class="n">row</span>
+            <span class="k">elif</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">last</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]:</span>
+                <span class="c1"># changes = []</span>
+                <span class="n">changes</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">k1</span><span class="p">,</span> <span class="n">v1</span><span class="p">,</span> <span class="n">v2</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">last</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">last</span><span class="p">,</span> <span class="n">row</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">v1</span> <span class="o">!=</span> <span class="n">v2</span><span class="p">:</span>
+                        <span class="n">changes</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">k1</span><span class="p">,</span> <span class="n">v1</span><span class="p">,</span> <span class="n">v2</span><span class="p">))</span>
+                <span class="n">changed</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">changes</span>
+                <span class="n">last</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">last</span> <span class="o">=</span> <span class="n">row</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">changed</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">result</span><span class="p">[</span><span class="s1">&#39;changed&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">changed</span>
+
+        <span class="c1"># See about the rows added</span>
+        <span class="n">added</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT </span><span class="si">{</span><span class="n">column_defs</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">          FROM </span><span class="si">{</span><span class="n">schema</span><span class="si">}</span><span class="s2">.bond</span>
+<span class="s2">         WHERE id = </span><span class="si">{</span><span class="n">_id</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">           AND id &lt;&gt; </span><span class="si">{</span><span class="n">other_id</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">):</span>
+            <span class="n">added</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">added</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">result</span><span class="p">[</span><span class="s1">&#39;columns in added rows&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">keys</span><span class="p">()[</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="n">result</span><span class="p">[</span><span class="s1">&#39;added&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">added</span>
+
+        <span class="c1"># See about the rows deleted</span>
+        <span class="n">deleted</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT </span><span class="si">{</span><span class="n">other_column_defs</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">          FROM </span><span class="si">{</span><span class="n">other_schema</span><span class="si">}</span><span class="s2">.bond</span>
+<span class="s2">         WHERE id = </span><span class="si">{</span><span class="n">other_id</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">           AND id &lt;&gt; </span><span class="si">{</span><span class="n">_id</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">):</span>
+            <span class="n">deleted</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">deleted</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">result</span><span class="p">[</span><span class="s1">&#39;columns in deleted rows&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">keys</span><span class="p">()[</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="n">result</span><span class="p">[</span><span class="s1">&#39;deleted&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">deleted</span>
+
+        <span class="c1"># Detach the other database if needed</span>
+        <span class="k">if</span> <span class="n">detach</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="o">.</span><span class="n">detach</span><span class="p">(</span><span class="n">other_db</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">result</span></div>
+
+    <span class="k">def</span> <span class="nf">_save</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Save our values in the database.&quot;&quot;&quot;</span>
+        <span class="n">parameters</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameters</span><span class="p">)</span>
+        <span class="n">parameters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+            <span class="s2">&quot;UPDATE cell SET a=?, b=?, c=?, alpha=?, beta=?, gamma=?&quot;</span>
+            <span class="s2">&quot;WHERE id = ?&quot;</span><span class="p">,</span> <span class="n">parameters</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+
+    </p>
+  </div>
+
+<p>
+<div class="row">
+  <div class="column_left">
+    <a href="https://molssi.org/" target="_blank" title="Go to MolSSI in a new tab">
+      <img src="/_images/MolSSI.jpg" alt="The MolSSI" style="border:0;">
+    </a>
+  </div>
+  <div class="column">
+    &copy; Copyright 2020, the Molecular Sciences Software Institute,
+    which receives funding from the National Science Foundation under award ACI-1547580
+  </div>
+  <div class="column_right">
+    <a href="https://nsf.gov/" target="_blank" title="Go to the NSF in a new tab">
+      <img src="/_images/NSF_4-Color_bitmap_Logo.png" alt="The NSF" style="border:0;">
+    </a>
+  </div>
+</div>
+
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

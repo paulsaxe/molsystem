@@ -1,0 +1,1080 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>molsystem.table &mdash; MolSystem Step 2020.12.5+21.g1f45da7 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/custom.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> MolSystem Step
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2020.12.5+21.g1f45da7
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../user/index.html">User Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developer/index.html">Developer Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../authors.html">Credits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">History</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://molssi-seamm.github.io">Main SEAMM documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">MolSystem Step</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>molsystem.table</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for molsystem.table</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="kn">import</span> <span class="nn">collections.abc</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">zip_longest</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">pandas</span>
+
+<span class="kn">from</span> <span class="nn">.column</span> <span class="kn">import</span> <span class="n">_Column</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">column_types</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;int&#39;</span><span class="p">:</span> <span class="s1">&#39;INTEGER&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;float&#39;</span><span class="p">:</span> <span class="s1">&#39;REAL&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;str&#39;</span><span class="p">:</span> <span class="s1">&#39;TEXT&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;bytes&#39;</span><span class="p">:</span> <span class="s1">&#39;BLOB&#39;</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="grouped"><a class="viewcode-back" href="../../molsystem.html#molsystem.table.grouped">[docs]</a><span class="k">def</span> <span class="nf">grouped</span><span class="p">(</span><span class="n">iterable</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+    <span class="s2">&quot;s -&gt; (s0,s1,s2,...sn-1), (sn,sn+1,sn+2,...s2n-1), (s2n,...s3n-1), ...&quot;</span>
+    <span class="k">return</span> <span class="n">zip_longest</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="nb">iter</span><span class="p">(</span><span class="n">iterable</span><span class="p">)]</span> <span class="o">*</span> <span class="n">n</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_Table"><a class="viewcode-back" href="../../molsystem.html#molsystem.table._Table">[docs]</a><span class="k">class</span> <span class="nc">_Table</span><span class="p">(</span><span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">MutableMapping</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;A dictionary-like object for holding tabular data</span>
+
+<span class="sd">    This is a wrapper around an SQL table, with columns being the attributes.</span>
+
+<span class="sd">    Attributes can be created, either from a list of predefined</span>
+<span class="sd">    ones or by specifying the metadata required of an attribute. Attributes can</span>
+<span class="sd">    also be deleted. See the method &#39;add_attribute&#39; for more detail.</span>
+
+<span class="sd">    Rows can be added (&#39;append&#39;) or deleted (&#39;delete&#39;).</span>
+
+<span class="sd">    :meta public:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">system_db</span><span class="p">,</span> <span class="n">table</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">other</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_system_db</span> <span class="o">=</span> <span class="n">system_db</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logger</span>
+        <span class="k">if</span> <span class="s1">&#39;.&#39;</span> <span class="ow">in</span> <span class="n">table</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_schema</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_table</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_schema</span> <span class="o">=</span> <span class="s1">&#39;main&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_table</span> <span class="o">=</span> <span class="n">table</span>
+        <span class="k">if</span> <span class="n">other</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">other</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoints</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Copy the table to a backup for a &#39;with&#39; statement.&quot;&quot;&quot;</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoints</span><span class="p">)</span>
+        <span class="n">checkpoint</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;temp.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_table</span><span class="si">}</span><span class="s1">_checkpoint_</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s1">&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;CREATE TEMP TABLE </span><span class="si">{</span><span class="n">checkpoint</span><span class="si">}</span><span class="s2"> AS SELECT * FROM </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoints</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">checkpoint</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">etype</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">traceback</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Handle returning from a &#39;with&#39; statement.&quot;&quot;&quot;</span>
+        <span class="n">checkpoint</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoints</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">etype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+            <span class="c1"># Log the changes</span>
+            <span class="n">previous</span> <span class="o">=</span> <span class="n">_Table</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="p">,</span> <span class="n">checkpoint</span><span class="p">)</span>
+            <span class="n">diffs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">previous</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">diffs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">diffs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Delete everything in the table and copy the checkpoint back.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">&#39;PRAGMA foreign_keys = OFF&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;INSERT INTO </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="si">}</span><span class="s2"> SELECT * FROM </span><span class="si">{</span><span class="n">checkpoint</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s1">&#39;PRAGMA foreign_keys = ON&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+        <span class="c1"># Drop the temporary table</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;DROP TABLE </span><span class="si">{</span><span class="n">checkpoint</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Allow [] to access the data!&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_column</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Allow x[key] access to the data&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="mi">0</span><span class="p">:]</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="fm">__delitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Allow deletion of keys&quot;&quot;&quot;</span>
+        <span class="c1"># The easy way, which is not supported in SQLite :-(</span>
+        <span class="c1"># self.cursor.execute(f&#39;ALTER TABLE {self.table} DROP {key}&#39;)</span>
+
+        <span class="n">columns</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attributes</span><span class="p">)</span>
+        <span class="n">columns</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="n">column_def</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span>
+
+        <span class="c1"># Need the unquoted version!</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_table</span>
+
+        <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        -- disable foreign key constraint check</span>
+<span class="s2">        PRAGMA foreign_keys=off;</span>
+
+<span class="s2">        -- Here you can drop column</span>
+<span class="s2">        CREATE TABLE </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="si">}</span><span class="s2">.&quot;tmp_</span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="s2">           AS SELECT </span><span class="si">{</span><span class="n">column_def</span><span class="si">}</span><span class="s2"> FROM </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="si">}</span><span class="s2">;</span>
+
+<span class="s2">        -- drop the table</span>
+<span class="s2">        DROP TABLE </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="si">}</span><span class="s2">;</span>
+
+<span class="s2">        -- rename the new_table to the table</span>
+<span class="s2">        ALTER TABLE </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="si">}</span><span class="s2">.&quot;tmp_</span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="s2">          RENAME TO &quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_table</span><span class="si">}</span><span class="s2">&quot;;</span>
+
+<span class="s2">        -- enable foreign key constraint check</span>
+<span class="s2">        PRAGMA foreign_keys=on;</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">executescript</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">iter</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Allow iteration over the object&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">([</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">attributes</span><span class="o">.</span><span class="n">keys</span><span class="p">()])</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;The len() command&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">attributes</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;The string representation of this object&quot;&quot;&quot;</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_dataframe</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">repr</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;The pretty string representation of this object&quot;&quot;&quot;</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_dataframe</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Return a boolean indicating if a key exists.&quot;&quot;&quot;</span>
+        <span class="c1"># Normal the tablename is used as an identifier, so is quoted with &quot;.</span>
+        <span class="c1"># Here we need it as a string literal so strip any quotes from it.</span>
+
+        <span class="n">tmp_item</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">tmp_item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">attributes</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a boolean if this object is equal to another&quot;&quot;&quot;</span>
+        <span class="c1"># Check numbers of rows</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_rows</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">n_rows</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="c1"># Check the columns</span>
+        <span class="n">attributes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attributes</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">attributes</span><span class="p">)</span>
+
+        <span class="n">other_attributes</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">attributes</span>
+        <span class="n">other_columns</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">other_attributes</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">columns</span> <span class="o">!=</span> <span class="n">other_columns</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="n">is_same</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="c1"># Need to check the contents of the tables. See if they are in the same</span>
+        <span class="c1"># database or if we need to attach the other database temporarily.</span>
+        <span class="n">db</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span>
+        <span class="n">other_db</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">system_db</span>
+
+        <span class="n">detach</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">db</span><span class="o">.</span><span class="n">filename</span> <span class="o">!=</span> <span class="n">other_db</span><span class="o">.</span><span class="n">filename</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">db</span><span class="o">.</span><span class="n">is_attached</span><span class="p">(</span><span class="n">other_db</span><span class="p">):</span>
+                <span class="n">schema</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">attached_as</span><span class="p">(</span><span class="n">other_db</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Attach the other system_db in order to do comparisons.</span>
+                <span class="n">schema</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">other_db</span><span class="p">)</span>
+                <span class="n">detach</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">other_table</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="n">schema</span><span class="si">}</span><span class="s1">&quot;.&quot;</span><span class="si">{</span><span class="n">other</span><span class="o">.</span><span class="n">_table</span><span class="si">}</span><span class="s1">&quot;&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">other_table</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">table</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT COUNT(*) FROM</span>
+<span class="s2">            (SELECT rowid, * FROM </span><span class="si">{</span><span class="n">other_table</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">            EXCEPT</span>
+<span class="s2">            SELECT rowid, * FROM </span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">)</span>
+<span class="s2">            &quot;&quot;&quot;</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">is_same</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                SELECT COUNT(*) FROM</span>
+<span class="s2">                (SELECT rowid, * FROM </span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">                EXCEPT</span>
+<span class="s2">                SELECT rowid, * FROM </span><span class="si">{</span><span class="n">other_table</span><span class="si">}</span><span class="s2">)</span>
+<span class="s2">                &quot;&quot;&quot;</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">is_same</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># Detach the other database if needed</span>
+        <span class="k">if</span> <span class="n">detach</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="o">.</span><span class="n">detach</span><span class="p">(</span><span class="n">other_db</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">is_same</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">system_db</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The system_db that we belong to.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_system_db</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">db</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The database connection.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="o">.</span><span class="n">db</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cursor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The database connection.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="o">.</span><span class="n">cursor</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">schema</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The database schema the table is in.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_schema</span><span class="si">}</span><span class="s1">&quot;&#39;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">table</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;The name of this table.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_schema</span><span class="si">}</span><span class="s1">&quot;.&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_table</span><span class="si">}</span><span class="s1">&quot;&#39;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">n_rows</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;The number of rows in the table.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;SELECT COUNT(*) FROM </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The definitions of the attributes.&quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+            <span class="s2">&quot;   SELECT *&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;    FROM </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="si">}</span><span class="s2">.pragma_table_info(&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_table</span><span class="si">}</span><span class="s2">&#39;)&quot;</span>
+            <span class="s2">&quot; ORDER BY &#39;cid&#39;&quot;</span>
+        <span class="p">):</span>
+            <span class="n">result</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">],</span>
+                <span class="s1">&#39;notnull&#39;</span><span class="p">:</span> <span class="nb">bool</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;notnull&#39;</span><span class="p">]),</span>
+                <span class="s1">&#39;default&#39;</span><span class="p">:</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;dflt_value&#39;</span><span class="p">],</span>
+                <span class="s1">&#39;primary key&#39;</span><span class="p">:</span> <span class="nb">bool</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;pk&#39;</span><span class="p">])</span>
+            <span class="p">}</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;PRAGMA foreign_key_list(&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="si">}</span><span class="s2">&#39;)&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;to&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;from&#39;</span><span class="p">]][</span><span class="s1">&#39;fk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;table&#39;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;from&#39;</span><span class="p">]][</span><span class="s1">&#39;fk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;table&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;to&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="c1"># @property</span>
+    <span class="c1"># def version(self):</span>
+    <span class="c1">#     return self.system_db.version</span>
+
+<div class="viewcode-block" id="_Table.add_attribute"><a class="viewcode-back" href="../../molsystem.html#molsystem.table._Table.add_attribute">[docs]</a>    <span class="k">def</span> <span class="nf">add_attribute</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">coltype</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;float&#39;</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">notnull</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">index</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">pk</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">references</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">on_delete</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;cascade&#39;</span><span class="p">,</span>
+        <span class="n">on_update</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;cascade&#39;</span><span class="p">,</span>
+        <span class="n">values</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Adds a new attribute.</span>
+
+<span class="sd">        If the default value is None, you must always provide values wherever</span>
+<span class="sd">        needed, for example when adding a row.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The name of the attribute.</span>
+<span class="sd">        coltype : str</span>
+<span class="sd">            The type of the attribute (column). Must be one of &#39;int&#39;,</span>
+<span class="sd">            &#39;float&#39;, &#39;str&#39; or &#39;byte&#39;</span>
+<span class="sd">        default : int, float, str or byte</span>
+<span class="sd">            The default value for the attribute if no value is given.</span>
+<span class="sd">        notnull : bool = False</span>
+<span class="sd">            Whether the value must be non-null</span>
+<span class="sd">        index : bool = False</span>
+<span class="sd">            Whether to create an index on the column</span>
+<span class="sd">        pk : bool = False</span>
+<span class="sd">            Whether the column is the primry keys</span>
+<span class="sd">        references : str = None</span>
+<span class="sd">            If not null, the column is a foreign key for this table.</span>
+<span class="sd">        on_delete : str = &#39;cascade&#39;</span>
+<span class="sd">            How to handle deletions of a foregin keys</span>
+<span class="sd">        on_update : str = &#39;cascade&#39;</span>
+<span class="sd">            How to handle updates of a foregin key</span>
+<span class="sd">        values : Any</span>
+<span class="sd">            Either a single value or a list of values length &#39;nrows&#39; of</span>
+<span class="sd">            values to fill the column.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Does the table exist?</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="p">:</span>
+            <span class="n">table_exists</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">if</span> <span class="n">pk</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s1">&#39;The primary key can only be set on the first attribute &#39;</span>
+                    <span class="s1">&#39;of a table that does not yet exist.&#39;</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">table_exists</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="n">pk</span><span class="p">:</span>
+                <span class="n">notnull</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> attribute &#39;</span><span class="si">{}</span><span class="s2">&#39; is already defined!&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">name</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="c1"># not null columns must have defaults</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">pk</span> <span class="ow">and</span> <span class="n">notnull</span> <span class="ow">and</span> <span class="n">default</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Not null attributes must have defaults: </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="c1"># see if the values are given</span>
+        <span class="k">if</span> <span class="n">values</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">length_of_values</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">length</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">length</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_rows</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;The number of values given, </span><span class="si">{</span><span class="n">length</span><span class="si">}</span><span class="s2">, must be either 1, &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;or the number of rows in </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_rows</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+
+        <span class="c1"># Create the column</span>
+        <span class="n">parameters</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">coltype</span> <span class="ow">in</span> <span class="n">column_types</span><span class="p">:</span>
+            <span class="n">column_type</span> <span class="o">=</span> <span class="n">column_types</span><span class="p">[</span><span class="n">coltype</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">column_type</span> <span class="o">=</span> <span class="n">coltype</span>
+        <span class="n">column_def</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">&quot; </span><span class="si">{</span><span class="n">column_type</span><span class="si">}</span><span class="s1">&#39;</span>
+        <span class="k">if</span> <span class="n">default</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">coltype</span> <span class="o">==</span> <span class="s1">&#39;str&#39;</span><span class="p">:</span>
+                <span class="n">column_def</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; DEFAULT &#39;</span><span class="si">{</span><span class="n">default</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">column_def</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39; DEFAULT </span><span class="si">{</span><span class="n">default</span><span class="si">}</span><span class="s1">&#39;</span>
+        <span class="k">if</span> <span class="n">notnull</span><span class="p">:</span>
+            <span class="n">column_def</span> <span class="o">+=</span> <span class="s1">&#39; NOT NULL&#39;</span>
+        <span class="k">if</span> <span class="n">references</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">column_def</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39; REFERENCES </span><span class="si">{</span><span class="n">references</span><span class="si">}</span><span class="s1">&#39;</span>
+            <span class="k">if</span> <span class="n">on_delete</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">on_delete</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+                <span class="n">column_def</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39; ON DELETE </span><span class="si">{</span><span class="n">on_delete</span><span class="si">}</span><span class="s1">&#39;</span>
+            <span class="k">if</span> <span class="n">on_update</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">on_update</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+                <span class="n">column_def</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39; ON UPDATE </span><span class="si">{</span><span class="n">on_update</span><span class="si">}</span><span class="s1">&#39;</span>
+
+        <span class="k">if</span> <span class="n">table_exists</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s1">&#39;ALTER TABLE </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="si">}</span><span class="s1"> ADD </span><span class="si">{</span><span class="n">column_def</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">parameters</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">pk</span><span class="p">:</span>
+                <span class="n">column_def</span> <span class="o">+=</span> <span class="s1">&#39; PRIMARY KEY&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s1">&#39;CREATE TABLE </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="si">}</span><span class="s1"> (</span><span class="si">{</span><span class="n">column_def</span><span class="si">}</span><span class="s1">)&#39;</span><span class="p">,</span> <span class="n">parameters</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">index</span> <span class="o">==</span> <span class="s1">&#39;unique&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s1">&#39;CREATE UNIQUE INDEX </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="si">}</span><span class="s1">.&quot;idx_</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">&quot;&#39;</span>
+                <span class="sa">f</span><span class="s1">&#39;  ON &quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_table</span><span class="si">}</span><span class="s1">&quot;&#39;</span>
+                <span class="sa">f</span><span class="s2">&quot;  (&#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;)&quot;</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">index</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s1">&#39;CREATE INDEX </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="si">}</span><span class="s1">.&quot;idx_</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">&quot;&#39;</span>
+                <span class="sa">f</span><span class="s1">&#39;  ON &quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_table</span><span class="si">}</span><span class="s1">&quot;&#39;</span>
+                <span class="sa">f</span><span class="s2">&quot;  (&#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;)&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">values</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">values</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="_Table.append"><a class="viewcode-back" href="../../molsystem.html#molsystem.table._Table.append">[docs]</a>    <span class="k">def</span> <span class="nf">append</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Append one or more rows</span>
+
+<span class="sd">        The keywords are the names of attributes and the value to use.</span>
+<span class="sd">        The default value for any attributes not given is used unless it is</span>
+<span class="sd">        &#39;None&#39; in which case an error is thrown. It is an error if there is not</span>
+<span class="sd">        an exisiting attribute corresponding to any given as arguments.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        kwargs : keyword arguments</span>
+<span class="sd">            Giving existing attributes and values.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        [int]</span>
+<span class="sd">            The ids of the created rows.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">n_rows</span><span class="p">,</span> <span class="n">lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_n_rows</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">lengths</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">if</span> <span class="n">n</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">n_rows</span> <span class="o">=</span> <span class="n">n</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">n_rows</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="n">n</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">n_rows</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">n_rows</span> <span class="o">!=</span> <span class="n">n</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Requested number of rows (</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">) not compatible with the &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;length of the data (</span><span class="si">{</span><span class="n">n_rows</span><span class="si">}</span><span class="s2">).&quot;</span>
+                <span class="p">)</span>
+            <span class="n">n_rows</span> <span class="o">=</span> <span class="n">n</span>
+
+        <span class="c1"># Check that any missing attributes have defaults</span>
+        <span class="n">attributes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attributes</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">attributes</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="ow">not</span> <span class="n">attributes</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s1">&#39;notnull&#39;</span><span class="p">]</span> <span class="ow">or</span>
+                <span class="n">attributes</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s1">&#39;primary key&#39;</span><span class="p">]</span>
+            <span class="p">):</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="s1">&#39;default&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">attributes</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="ow">or</span>
+                    <span class="n">attributes</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s1">&#39;default&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span>
+                <span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                        <span class="s2">&quot;There is no default for attribute &quot;</span>
+                        <span class="s2">&quot;&#39;</span><span class="si">{}</span><span class="s2">&#39;. You must supply a value&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+                    <span class="p">)</span>
+
+        <span class="c1"># Add id&#39;s if needed</span>
+        <span class="k">if</span> <span class="s1">&#39;id&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">and</span> <span class="s1">&#39;id&#39;</span> <span class="ow">in</span> <span class="n">attributes</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SELECT MAX(id) FROM </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">last_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">last_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># Table is empty</span>
+                <span class="n">last_id</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="o">*</span><span class="nb">range</span><span class="p">(</span><span class="n">last_id</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">last_id</span> <span class="o">+</span> <span class="n">n_rows</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
+            <span class="n">lengths</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">n_rows</span>
+
+        <span class="c1"># All okay, so proceed.</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">lengths</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">values</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">value</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_rows</span>
+            <span class="k">elif</span> <span class="n">lengths</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">values</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">*</span> <span class="n">n_rows</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">values</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+        <span class="n">parameters</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_rows</span><span class="p">):</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">values</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">line</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="n">row</span><span class="p">])</span>
+            <span class="n">parameters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+
+        <span class="n">columns</span> <span class="o">=</span> <span class="s1">&#39;&quot;&#39;</span> <span class="o">+</span> <span class="s1">&#39;&quot;, &quot;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">+</span> <span class="s1">&#39;&quot;&#39;</span>
+        <span class="n">places</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s1">&#39;?&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">executemany</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s1">&#39;INSERT INTO </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="si">}</span><span class="s1"> (</span><span class="si">{</span><span class="n">columns</span><span class="si">}</span><span class="s1">) VALUES (</span><span class="si">{</span><span class="n">places</span><span class="si">}</span><span class="s1">)&#39;</span><span class="p">,</span>
+            <span class="n">parameters</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="s1">&#39;id&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="_Table.clear"><a class="viewcode-back" href="../../molsystem.html#molsystem.table._Table.clear">[docs]</a>    <span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Delete all rows from the table.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;DELETE FROM </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_Table.diff"><a class="viewcode-back" href="../../molsystem.html#molsystem.table._Table.diff">[docs]</a>    <span class="k">def</span> <span class="nf">diff</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Difference between this table and another</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        other : _Table</span>
+<span class="sd">            The other table to diff against</span>
+
+<span class="sd">        Result</span>
+<span class="sd">        ------</span>
+<span class="sd">        result : dict</span>
+<span class="sd">            The differences, described in a dictionary</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;diffs for </span><span class="si">{self.table}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">summary</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># Check the columns</span>
+        <span class="n">attributes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attributes</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">attributes</span><span class="p">)</span>
+
+        <span class="n">other_attributes</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">attributes</span>
+        <span class="n">other_columns</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">other_attributes</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">columns</span> <span class="o">==</span> <span class="n">other_columns</span><span class="p">:</span>
+            <span class="n">column_def</span> <span class="o">=</span> <span class="s1">&#39;rowid, *&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">added</span> <span class="o">=</span> <span class="n">columns</span> <span class="o">-</span> <span class="n">other_columns</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">added</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;      columns added: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">added</span><span class="p">))</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+                <span class="n">result</span><span class="p">[</span><span class="s1">&#39;columns added&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">added</span>
+                <span class="n">summary</span><span class="p">[</span><span class="s1">&#39;columns add&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">added</span>
+            <span class="n">deleted</span> <span class="o">=</span> <span class="n">other_columns</span> <span class="o">-</span> <span class="n">columns</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">deleted</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;     columns deleted: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">deleted</span><span class="p">))</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+                <span class="n">result</span><span class="p">[</span><span class="s1">&#39;columns deleted&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">deleted</span>
+                <span class="n">summary</span><span class="p">[</span><span class="s1">&#39;columns deleted&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">deleted</span>
+
+            <span class="n">in_common</span> <span class="o">=</span> <span class="n">other_columns</span> <span class="o">&amp;</span> <span class="n">columns</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">in_common</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">column_def</span> <span class="o">=</span> <span class="s1">&#39;rowid, &#39;</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s1">&quot;&#39;</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">in_common</span><span class="p">]</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># No columns shared</span>
+                <span class="k">return</span> <span class="n">result</span>
+
+        <span class="c1"># Need to check the contents of the tables. See if they are in the same</span>
+        <span class="c1"># database or if we need to attach the other database temporarily.</span>
+        <span class="n">db</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span>
+        <span class="n">other_db</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">system_db</span>
+
+        <span class="n">detach</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">db</span><span class="o">.</span><span class="n">filename</span> <span class="o">!=</span> <span class="n">other_db</span><span class="o">.</span><span class="n">filename</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">db</span><span class="o">.</span><span class="n">is_attached</span><span class="p">(</span><span class="n">other_db</span><span class="p">):</span>
+                <span class="n">schema</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">attached_as</span><span class="p">(</span><span class="n">other_db</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Attach the other system_db in order to do comparisons.</span>
+                <span class="n">schema</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">other_db</span><span class="p">)</span>
+                <span class="n">detach</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">other_table</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="n">schema</span><span class="si">}</span><span class="s1">&quot;.&quot;</span><span class="si">{</span><span class="n">other</span><span class="o">.</span><span class="n">_table</span><span class="si">}</span><span class="s1">&quot;&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">other_table</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">table</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span>
+
+        <span class="n">changed</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">last</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT </span><span class="si">{</span><span class="n">column_def</span><span class="si">}</span><span class="s2"> FROM</span>
+<span class="s2">         (</span>
+<span class="s2">          SELECT </span><span class="si">{</span><span class="n">column_def</span><span class="si">}</span><span class="s2"> FROM </span><span class="si">{</span><span class="n">other_table</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">           EXCEPT</span>
+<span class="s2">          SELECT </span><span class="si">{</span><span class="n">column_def</span><span class="si">}</span><span class="s2"> FROM </span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">         )</span>
+<span class="s2">        UNION ALL</span>
+<span class="s2">        SELECT </span><span class="si">{</span><span class="n">column_def</span><span class="si">}</span><span class="s2"> FROM</span>
+<span class="s2">         (</span>
+<span class="s2">          SELECT </span><span class="si">{</span><span class="n">column_def</span><span class="si">}</span><span class="s2"> FROM </span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">           EXCEPT</span>
+<span class="s2">          SELECT </span><span class="si">{</span><span class="n">column_def</span><span class="si">}</span><span class="s2"> FROM </span><span class="si">{</span><span class="n">other_table</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">         )</span>
+<span class="s2">        ORDER BY rowid</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="n">changed_columns</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">last</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">last</span> <span class="o">=</span> <span class="n">row</span>
+            <span class="k">elif</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;rowid&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">last</span><span class="p">[</span><span class="s1">&#39;rowid&#39;</span><span class="p">]:</span>
+                <span class="n">changes</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">k1</span><span class="p">,</span> <span class="n">v1</span><span class="p">,</span> <span class="n">v2</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">last</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">last</span><span class="p">,</span> <span class="n">row</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">v1</span> <span class="o">!=</span> <span class="n">v2</span><span class="p">:</span>
+                        <span class="n">changed_columns</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">k1</span><span class="p">)</span>
+                        <span class="n">changes</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">k1</span><span class="p">,</span> <span class="n">v1</span><span class="p">,</span> <span class="n">v2</span><span class="p">))</span>
+                <span class="n">changed</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;rowid&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">changes</span>
+                <span class="n">last</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">last</span> <span class="o">=</span> <span class="n">row</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">changed</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;    columns changed: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">changed_columns</span><span class="p">))</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            <span class="n">result</span><span class="p">[</span><span class="s1">&#39;changed&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">changed</span>
+            <span class="n">summary</span><span class="p">[</span><span class="s1">&#39;columns changed&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">changed_columns</span>
+
+        <span class="c1"># See about the rows added</span>
+        <span class="n">added</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="s1">&#39;id&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                SELECT * FROM </span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">                WHERE rowid NOT IN (SELECT rowid FROM </span><span class="si">{</span><span class="n">other_table</span><span class="si">}</span><span class="s2">)</span>
+<span class="s2">                &quot;&quot;&quot;</span>
+            <span class="p">):</span>
+                <span class="n">added</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                SELECT rowid, * FROM </span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">                WHERE rowid NOT IN (SELECT rowid FROM </span><span class="si">{</span><span class="n">other_table</span><span class="si">}</span><span class="s2">)</span>
+<span class="s2">                &quot;&quot;&quot;</span>
+            <span class="p">):</span>
+                <span class="n">added</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;rowid&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">added</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;         rows added: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">added</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">result</span><span class="p">[</span><span class="s1">&#39;columns in added rows&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">keys</span><span class="p">()[</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="n">result</span><span class="p">[</span><span class="s1">&#39;added&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">added</span>
+            <span class="n">summary</span><span class="p">[</span><span class="s1">&#39;rows added&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">added</span><span class="p">)</span>
+
+        <span class="c1"># See about the rows deleted</span>
+        <span class="n">deleted</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="s1">&#39;id&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                SELECT * FROM </span><span class="si">{</span><span class="n">other_table</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">                WHERE rowid NOT IN (SELECT rowid FROM </span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">)</span>
+<span class="s2">                &quot;&quot;&quot;</span>
+            <span class="p">):</span>
+                <span class="n">deleted</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">                SELECT rowid, * FROM </span><span class="si">{</span><span class="n">other_table</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">                WHERE rowid NOT IN (SELECT rowid FROM </span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s2">)</span>
+<span class="s2">                &quot;&quot;&quot;</span>
+            <span class="p">):</span>
+                <span class="n">deleted</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;rowid&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">deleted</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;       rows deleted: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">deleted</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">result</span><span class="p">[</span><span class="s1">&#39;columns in deleted rows&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">keys</span><span class="p">()[</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="n">result</span><span class="p">[</span><span class="s1">&#39;deleted&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">deleted</span>
+            <span class="n">summary</span><span class="p">[</span><span class="s1">&#39;rows deleted&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">deleted</span><span class="p">)</span>
+
+        <span class="c1"># Detach the other database if needed</span>
+        <span class="k">if</span> <span class="n">detach</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="o">.</span><span class="n">detach</span><span class="p">(</span><span class="n">other_db</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;    no changes&quot;</span><span class="p">)</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">result</span><span class="p">[</span><span class="s1">&#39;summary&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">summary</span>
+
+        <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="_Table.get_as_dict"><a class="viewcode-back" href="../../molsystem.html#molsystem.table._Table.get_as_dict">[docs]</a>    <span class="k">def</span> <span class="nf">get_as_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the table data as a Python dictionary of lists.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        args : [str]</span>
+<span class="sd">            Added selection criteria for the SQL, one word at a time.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict(str: [])</span>
+<span class="sd">            A dictionary whose keys are the column names and values as lists</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">rows</span><span class="o">.</span><span class="n">description</span><span class="p">]</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">columns</span><span class="p">}</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">columns</span><span class="p">,</span> <span class="n">row</span><span class="p">):</span>
+                <span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">data</span></div>
+
+<div class="viewcode-block" id="_Table.get_column"><a class="viewcode-back" href="../../molsystem.html#molsystem.table._Table.get_column">[docs]</a>    <span class="k">def</span> <span class="nf">get_column</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">column</span><span class="p">,</span> <span class="n">sql</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a column of data from the table.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        column : str</span>
+<span class="sd">            The name of the column.</span>
+<span class="sd">        sql : str = None</span>
+<span class="sd">            Optional SQL statement to get the rows.</span>
+<span class="sd">        where : str = &#39;&#39;</span>
+<span class="sd">            Optional WHERE clause when getting the rows if no SQL is given.</span>
+<span class="sd">            Should be the complete clause, starting with &#39;WHERE ...&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">_Column</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">column</span><span class="o">=</span><span class="n">column</span><span class="p">,</span> <span class="n">sql</span><span class="o">=</span><span class="n">sql</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="n">where</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_Table.get_column_data"><a class="viewcode-back" href="../../molsystem.html#molsystem.table._Table.get_column_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_column_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">column</span><span class="p">,</span> <span class="n">sql</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">where</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a column of data from the table as a list.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        column : str</span>
+<span class="sd">            The name of the column.</span>
+<span class="sd">        sql : str = None</span>
+<span class="sd">            Optional SQL statement to get the rows.</span>
+<span class="sd">        where : str = &#39;&#39;</span>
+<span class="sd">            Optional WHERE clause when getting the rows if no SQL is given.</span>
+<span class="sd">            Should be the complete clause, starting with &#39;WHERE ...&#39;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">sql</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;SELECT </span><span class="si">{</span><span class="n">column</span><span class="si">}</span><span class="s1"> FROM </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">where</span><span class="si">}</span><span class="s1">&#39;</span>
+
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">):</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="_Table.delete"><a class="viewcode-back" href="../../molsystem.html#molsystem.table._Table.delete">[docs]</a>    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Delete rows matching the selection.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;DELETE FROM </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;DELETE FROM </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="si">}</span><span class="s1"> WHERE&#39;</span>
+
+        <span class="n">parameters</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">clause</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">grouped</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">op</span> <span class="o">==</span> <span class="s1">&#39;==&#39;</span><span class="p">:</span>
+                <span class="n">op</span> <span class="o">=</span> <span class="s1">&#39;=&#39;</span>
+            <span class="n">clause</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s1">&quot; </span><span class="si">{</span><span class="n">op</span><span class="si">}</span><span class="s1"> ?&#39;</span><span class="p">)</span>
+            <span class="n">parameters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s1">&#39; AND &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">clause</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">parameters</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_Table.rows"><a class="viewcode-back" href="../../molsystem.html#molsystem.table._Table.rows">[docs]</a>    <span class="k">def</span> <span class="nf">rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return an iterator over the rows.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;SELECT * FROM </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;SELECT * FROM </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="si">}</span><span class="s1"> WHERE&#39;</span>
+
+        <span class="n">parameters</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">clause</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">grouped</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">op</span> <span class="o">==</span> <span class="s1">&#39;==&#39;</span><span class="p">:</span>
+                <span class="n">op</span> <span class="o">=</span> <span class="s1">&#39;=&#39;</span>
+            <span class="n">clause</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s1">&quot; </span><span class="si">{</span><span class="n">op</span><span class="si">}</span><span class="s1"> ?&#39;</span><span class="p">)</span>
+            <span class="n">parameters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s1">&#39; AND &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">clause</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">parameters</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_get_n_rows</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the total number of rows represented in the arguments.&quot;&quot;&quot;</span>
+        <span class="n">n_rows</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">lengths</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">&quot; is not an attribute of the table &#39;</span>
+                    <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="si">}</span><span class="s1">!&#39;</span>
+                <span class="p">)</span>
+            <span class="n">length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">length_of_values</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="n">lengths</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">length</span>
+
+            <span class="k">if</span> <span class="n">n_rows</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">n_rows</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">length</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">length</span>
+
+            <span class="k">if</span> <span class="n">length</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">length</span> <span class="o">!=</span> <span class="n">n_rows</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">n_rows</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">n_rows</span> <span class="o">=</span> <span class="n">length</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span>
+                        <span class="s1">&#39;key &quot;</span><span class="si">{}</span><span class="s1">&quot; has the wrong number of values, &#39;</span>
+                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="o">+</span>
+                        <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">. Should be 1 or the number of rows in </span><span class="si">{}</span><span class="s1"> (</span><span class="si">{}</span><span class="s1">).&#39;</span>
+                        <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">,</span> <span class="n">n_rows</span><span class="p">)</span>
+                    <span class="p">)</span>
+        <span class="k">return</span> <span class="n">n_rows</span><span class="p">,</span> <span class="n">lengths</span>
+
+<div class="viewcode-block" id="_Table.copy"><a class="viewcode-back" href="../../molsystem.html#molsystem.table._Table.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Replace this object with a copy of another.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="p">]</span>
+
+        <span class="c1"># Need the contents of the tables. See if they are in the same</span>
+        <span class="c1"># database or if we need to attach the other database temporarily.</span>
+
+        <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="o">.</span><span class="n">nickname</span>
+        <span class="n">other_name</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">system_db</span><span class="o">.</span><span class="n">nickname</span>
+        <span class="n">detach</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">!=</span> <span class="n">other_name</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="o">.</span><span class="n">is_attached</span><span class="p">(</span><span class="n">other_name</span><span class="p">):</span>
+                <span class="c1"># Attach the other system_db in order to do comparisons.</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">system_db</span><span class="p">)</span>
+                <span class="n">detach</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">other_table</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="n">other_name</span><span class="si">}</span><span class="s1">&quot;.&quot;</span><span class="si">{</span><span class="n">other</span><span class="o">.</span><span class="n">_table</span><span class="si">}</span><span class="s1">&quot;&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">other_table</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">table</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">table</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s1">&#39;CREATE TABLE </span><span class="si">{</span><span class="n">table</span><span class="si">}</span><span class="s1"> AS SELECT * FROM </span><span class="si">{</span><span class="n">other_table</span><span class="si">}</span><span class="s1">&#39;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+        <span class="c1"># Detach the other database if needed</span>
+        <span class="k">if</span> <span class="n">detach</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="o">.</span><span class="n">detach</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">system_db</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_Table.length_of_values"><a class="viewcode-back" href="../../molsystem.html#molsystem.table._Table.length_of_values">[docs]</a>    <span class="k">def</span> <span class="nf">length_of_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the length of the values argument.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        values : Any</span>
+<span class="sd">            The values, which might be a string, single value, list, tuple,</span>
+<span class="sd">            etc.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        length : int</span>
+<span class="sd">            The length of the values. 0 indicates a scalar</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">return</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                <span class="k">return</span> <span class="mi">0</span></div>
+
+<div class="viewcode-block" id="_Table.to_dataframe"><a class="viewcode-back" href="../../molsystem.html#molsystem.table._Table.to_dataframe">[docs]</a>    <span class="k">def</span> <span class="nf">to_dataframe</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the contents of the table as a Pandas Dataframe.&quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;SELECT rowid, * FROM </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">table</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">):</span>
+            <span class="n">data</span><span class="p">[</span><span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">description</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span>
+
+        <span class="n">df</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">orient</span><span class="o">=</span><span class="s1">&#39;index&#39;</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">columns</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">df</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+
+    </p>
+  </div>
+
+<p>
+<div class="row">
+  <div class="column_left">
+    <a href="https://molssi.org/" target="_blank" title="Go to MolSSI in a new tab">
+      <img src="/_images/MolSSI.jpg" alt="The MolSSI" style="border:0;">
+    </a>
+  </div>
+  <div class="column">
+    &copy; Copyright 2020, the Molecular Sciences Software Institute,
+    which receives funding from the National Science Foundation under award ACI-1547580
+  </div>
+  <div class="column_right">
+    <a href="https://nsf.gov/" target="_blank" title="Go to the NSF in a new tab">
+      <img src="/_images/NSF_4-Color_bitmap_Logo.png" alt="The NSF" style="border:0;">
+    </a>
+  </div>
+</div>
+
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

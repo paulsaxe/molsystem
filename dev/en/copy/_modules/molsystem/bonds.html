@@ -1,0 +1,1049 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>molsystem.bonds &mdash; MolSystem Step 2020.12.5+21.g1f45da7 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/custom.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> MolSystem Step
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2020.12.5+21.g1f45da7
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../user/index.html">User Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developer/index.html">Developer Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../authors.html">Credits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">History</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://molssi-seamm.github.io">Main SEAMM documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">MolSystem Step</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>molsystem.bonds</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for molsystem.bonds</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="sd">&quot;&quot;&quot;A dictionary-like object for holding bonds</span>
+
+<span class="sd">Based on tables in an SQLite database.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Sequence</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">sqlite3</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span>
+
+<span class="kn">from</span> <span class="nn">.column</span> <span class="kn">import</span> <span class="n">_Column</span>
+<span class="kn">from</span> <span class="nn">.table</span> <span class="kn">import</span> <span class="n">_Table</span>
+<span class="kn">from</span> <span class="nn">.frozencolumn</span> <span class="kn">import</span> <span class="n">_FrozenColumn</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="_Bonds"><a class="viewcode-back" href="../../molsystem.html#molsystem.bonds._Bonds">[docs]</a><span class="k">class</span> <span class="nc">_Bonds</span><span class="p">(</span><span class="n">_Table</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The Bonds class describes the bonds in the system.</span>
+
+<span class="sd">    :meta public:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">configuration</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_configuration</span> <span class="o">=</span> <span class="n">configuration</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_system</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bondset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_configuration</span><span class="o">.</span><span class="n">bondset</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">configuration</span><span class="o">.</span><span class="n">_system_db</span><span class="p">,</span> <span class="s1">&#39;bond&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Copy the tables to a backup for a &#39;with&#39; statement.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="p">[</span><span class="s2">&quot;bondset_bond&quot;</span><span class="p">]</span><span class="o">.</span><span class="fm">__enter__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="p">[</span><span class="s2">&quot;bond&quot;</span><span class="p">]</span><span class="o">.</span><span class="fm">__enter__</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">etype</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">traceback</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Handle returning from a &#39;with&#39; statement.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">etype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">version</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">configuration</span><span class="o">.</span><span class="n">version</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="p">[</span><span class="s2">&quot;bondset_bond&quot;</span><span class="p">]</span><span class="o">.</span><span class="fm">__exit__</span><span class="p">(</span><span class="n">etype</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">traceback</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="p">[</span><span class="s2">&quot;bond&quot;</span><span class="p">]</span><span class="o">.</span><span class="fm">__exit__</span><span class="p">(</span><span class="n">etype</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">traceback</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a boolean if this object is equal to another&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">bond_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The ids of the bonds.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_bond_ids</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">bondorders</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The bond orders.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_column_data</span><span class="p">(</span><span class="s1">&#39;bondorder&#39;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">bondset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The bondset for these bonds.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bondset</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">configuration</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the configuration.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_configuration</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cursor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The database connection.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="o">.</span><span class="n">cursor</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">db</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The database connection.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="o">.</span><span class="n">db</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">n_bonds</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The number of bonds.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+            <span class="s2">&quot;SELECT COUNT(*) FROM bondset_bond WHERE bondset = ?&quot;</span><span class="p">,</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bondset</span><span class="p">,)</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">system_db</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The system database that we belong to.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_system_db</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">system</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The system that we belong to.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_system</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                <span class="s1">&#39;SELECT system FROM configuration WHERE id = ?&#39;</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">id</span><span class="p">,)</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_system</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="o">.</span><span class="n">get_system</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_system</span>
+
+<div class="viewcode-block" id="_Bonds.append"><a class="viewcode-back" href="../../molsystem.html#molsystem.bonds._Bonds.append">[docs]</a>    <span class="k">def</span> <span class="nf">append</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Append one or more bonds</span>
+
+<span class="sd">        The keys give the field for the data. If an existing field is not</span>
+<span class="sd">        mentioned, then the default value is used, unless the default is None,</span>
+<span class="sd">        in which case an error is thrown. It is an error if there is not a</span>
+<span class="sd">        field corrresponding to a key.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        bonds : [sqlite3.Rows] or {str : [int]}</span>
+<span class="sd">            The bonds as either SQLite Rows or a dictionary of values or lists.</span>
+<span class="sd">            Any other arguments override the same value in &#39;bonds&#39;.</span>
+<span class="sd">        i : [int]</span>
+<span class="sd">            The atom indices of the first atom.</span>
+<span class="sd">        j : [int]</span>
+<span class="sd">            The atom indices of the second atom.</span>
+<span class="sd">        bondorder : [int] optional</span>
+<span class="sd">            Bond orders, defaults to 1 for single bonds.</span>
+<span class="sd">        other : [int, float, str] optional</span>
+<span class="sd">            Other optional attributes of bonds.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s1">&#39;bonds&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="n">bonds</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;bonds&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bonds</span><span class="p">,</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Row</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">bonds</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">item</span> <span class="o">!=</span> <span class="s1">&#39;id&#39;</span><span class="p">:</span>
+                        <span class="n">kwargs</span><span class="p">[</span><span class="n">item</span><span class="p">]</span> <span class="o">=</span> <span class="n">bonds</span><span class="p">[</span><span class="n">item</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="p">(</span>
+                <span class="nb">isinstance</span><span class="p">(</span><span class="n">bonds</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">)</span> <span class="ow">and</span>
+                <span class="nb">isinstance</span><span class="p">(</span><span class="n">bonds</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">Row</span><span class="p">)</span>
+            <span class="p">):</span>
+                <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">bonds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">item</span> <span class="o">!=</span> <span class="s1">&#39;id&#39;</span><span class="p">:</span>
+                        <span class="n">kwargs</span><span class="p">[</span><span class="n">item</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="n">item</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">bonds</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">bonds</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">):</span>
+                            <span class="n">kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">value</span><span class="p">]</span>
+                <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                        <span class="s2">&quot;bonds argument must be sqlite3.Row or a mapping &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;(dict) type, not </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">bonds</span><span class="p">)</span><span class="si">}</span><span class="s2">.&quot;</span>
+                    <span class="p">)</span>
+
+        <span class="c1"># Check keys and lengths of added bonds</span>
+        <span class="k">if</span> <span class="s1">&#39;i&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">or</span> <span class="s1">&#39;j&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s2">&quot;The atoms i &amp; j are required!&quot;</span><span class="p">)</span>
+
+        <span class="n">i</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;i&#39;</span><span class="p">)</span>
+        <span class="n">j</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;j&#39;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">len_i</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="n">len_i</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span><span class="p">,)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">len_j</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="n">len_j</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">j</span> <span class="o">=</span> <span class="p">(</span><span class="n">j</span><span class="p">,)</span>
+
+        <span class="k">if</span> <span class="n">len_i</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">len_j</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="n">len_i</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">len_j</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">i</span> <span class="o">=</span> <span class="n">len_j</span> <span class="o">*</span> <span class="p">[</span><span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+        <span class="k">elif</span> <span class="n">len_j</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">j</span> <span class="o">=</span> <span class="n">len_i</span> <span class="o">*</span> <span class="p">[</span><span class="n">j</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+        <span class="k">elif</span> <span class="n">len_i</span> <span class="o">!=</span> <span class="n">len_j</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s1">&#39;key &quot;j&quot; has the wrong number of values, </span><span class="si">{</span><span class="n">len_j</span><span class="si">}</span><span class="s1">. &#39;</span>
+                <span class="sa">f</span><span class="s1">&#39;Should be 1 or the number of values in i, </span><span class="si">{</span><span class="n">len_i</span><span class="si">}</span><span class="s1">.&#39;</span>
+            <span class="p">)</span>
+        <span class="c1"># Ensure that i &lt; j</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="n">i</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">j</span> <span class="o">=</span> <span class="n">j</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+        <span class="n">i2</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">j2</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i_</span><span class="p">,</span> <span class="n">j_</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">):</span>
+            <span class="c1"># will need to handle offsets here at some point</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">i_</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">j_</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="s2">&quot;&#39;i&#39; and &#39;j&#39;, the atom indices, must be integers&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="n">i_</span> <span class="o">&lt;</span> <span class="n">j_</span><span class="p">:</span>
+                <span class="n">i2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i_</span><span class="p">)</span>
+                <span class="n">j2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">j_</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">i2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">j_</span><span class="p">)</span>
+                <span class="n">j2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i_</span><span class="p">)</span>
+
+        <span class="n">ids</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="o">=</span><span class="n">i2</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="n">j2</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># And to the bondset</span>
+        <span class="n">table</span> <span class="o">=</span> <span class="n">_Table</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="p">,</span> <span class="s1">&#39;bondset_bond&#39;</span><span class="p">)</span>
+        <span class="n">table</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bondset</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bondset</span><span class="p">,</span> <span class="n">bond</span><span class="o">=</span><span class="n">ids</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ids</span></div>
+
+<div class="viewcode-block" id="_Bonds.bonds"><a class="viewcode-back" href="../../molsystem.html#molsystem.bonds._Bonds.bonds">[docs]</a>    <span class="k">def</span> <span class="nf">bonds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns an iterator over the bonds.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        args : [str]</span>
+<span class="sd">            Added selection criteria for the SQL, one word at a time.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        sqlite3.Cursor</span>
+<span class="sd">            A cursor that returns sqlite3.Row objects for the bonds.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;SELECT bond.* FROM bond, bondset_bond&quot;</span>
+            <span class="s2">&quot; WHERE bond.id = bondset_bond.bond&quot;</span>
+            <span class="s2">&quot;   AND bondset_bond.bondset = ?&quot;</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bondset</span><span class="p">,))</span></div>
+
+<div class="viewcode-block" id="_Bonds.contains_bond"><a class="viewcode-back" href="../../molsystem.html#molsystem.bonds._Bonds.contains_bond">[docs]</a>    <span class="k">def</span> <span class="nf">contains_bond</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Whether there is a bond between atoms i and j.&quot;&quot;&quot;</span>
+        <span class="c1"># get canonical order</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="n">j</span><span class="p">:</span>
+            <span class="n">j</span><span class="p">,</span> <span class="n">i</span> <span class="o">=</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;SELECT COUNT(*) FROM bond, bondset_bond&quot;</span>
+            <span class="s2">&quot; WHERE bond.i = ? AND bond.j = ?&quot;</span>
+            <span class="s2">&quot;   AND bondset_bond.bondset = ?&quot;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bondset</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span></div>
+
+<div class="viewcode-block" id="_Bonds.delete_bond"><a class="viewcode-back" href="../../molsystem.html#molsystem.bonds._Bonds.delete_bond">[docs]</a>    <span class="k">def</span> <span class="nf">delete_bond</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Delete a bond, if present.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        i : int</span>
+<span class="sd">            Either the first atom in the bond or the bond id.</span>
+<span class="sd">        j : int = None</span>
+<span class="sd">            If not None, then the second atom in the bond.</span>
+<span class="sd">        force : bool = False</span>
+<span class="sd">            If true, ignore missing bonds.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># get canonical order</span>
+        <span class="k">if</span> <span class="n">j</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">bond_id</span> <span class="o">=</span> <span class="n">i</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="n">j</span><span class="p">:</span>
+                <span class="n">j</span><span class="p">,</span> <span class="n">i</span> <span class="o">=</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;SELECT bond.id FROM bond, bondset_bond&quot;</span>
+                <span class="s2">&quot; WHERE bond.i = ? AND bond.j = ?&quot;</span>
+                <span class="s2">&quot;   AND bondset_bond.bondset = ?&quot;</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bondset</span><span class="p">))</span>
+            <span class="n">bond_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">bond_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">bond_id</span> <span class="o">=</span> <span class="n">bond_id</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">bond_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">force</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;The bond did not exist.&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;DELETE FROM bond WHERE id = ?&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">bond_id</span><span class="p">,))</span></div>
+
+<div class="viewcode-block" id="_Bonds.delete"><a class="viewcode-back" href="../../molsystem.html#molsystem.bonds._Bonds.delete">[docs]</a>    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atoms</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Deletes all the bonds, optionally from atoms.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        atoms : [int] = None</span>
+<span class="sd">            The list of atoms whose bonds are deleted</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">atoms</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;DELETE FROM bond&quot;</span>
+                <span class="s2">&quot; WHERE (i = ? OR j = ?)&quot;</span>
+                <span class="s2">&quot;   AND id in (&quot;</span>
+                <span class="s2">&quot;              SELECT bond FROM bondset_bond&quot;</span>
+                <span class="s2">&quot;              WHERE bondset = ?&quot;</span>
+                <span class="s2">&quot;             )&quot;</span>
+            <span class="p">)</span>
+            <span class="n">parameters</span> <span class="o">=</span> <span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bondset</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">executemany</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">parameters</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;DELETE FROM bond&quot;</span>
+                <span class="s2">&quot; WHERE id in (&quot;</span>
+                <span class="s2">&quot;              SELECT bond FROM bondset_bond&quot;</span>
+                <span class="s2">&quot;               WHERE bondset = ?&quot;</span>
+                <span class="s2">&quot;             )&quot;</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bondset</span><span class="p">,))</span></div>
+
+<div class="viewcode-block" id="_Bonds.diff"><a class="viewcode-back" href="../../molsystem.html#molsystem.bonds._Bonds.diff">[docs]</a>    <span class="k">def</span> <span class="nf">diff</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Difference between these bonds and another</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        other : _Bonds</span>
+<span class="sd">            The other bonds to diff against</span>
+
+<span class="sd">        Result</span>
+<span class="sd">        ------</span>
+<span class="sd">        result : Dict</span>
+<span class="sd">            The differences, described in a dictionary</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># Check the columns</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_columns</span><span class="p">()</span>
+        <span class="n">other_columns</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">_columns</span><span class="p">()</span>
+
+        <span class="n">column_defs</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span>
+        <span class="n">other_column_defs</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">other_columns</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">columns</span> <span class="o">==</span> <span class="n">other_columns</span><span class="p">:</span>
+            <span class="n">column_def</span> <span class="o">=</span> <span class="n">column_defs</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">added</span> <span class="o">=</span> <span class="n">columns</span> <span class="o">-</span> <span class="n">other_columns</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">added</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">result</span><span class="p">[</span><span class="s1">&#39;columns added&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">added</span><span class="p">)</span>
+            <span class="n">deleted</span> <span class="o">=</span> <span class="n">other_columns</span> <span class="o">-</span> <span class="n">columns</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">deleted</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">result</span><span class="p">[</span><span class="s1">&#39;columns deleted&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">deleted</span><span class="p">)</span>
+
+            <span class="n">in_common</span> <span class="o">=</span> <span class="n">other_columns</span> <span class="o">&amp;</span> <span class="n">columns</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">in_common</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">column_def</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">in_common</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># No columns shared</span>
+                <span class="k">return</span> <span class="n">result</span>
+
+        <span class="c1"># Need to check the contents of the tables. See if they are in the same</span>
+        <span class="c1"># database or if we need to attach the other database temporarily.</span>
+        <span class="n">db</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span>
+        <span class="n">other_db</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">system_db</span>
+
+        <span class="n">detach</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">schema</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span>
+        <span class="k">if</span> <span class="n">db</span><span class="o">.</span><span class="n">filename</span> <span class="o">!=</span> <span class="n">other_db</span><span class="o">.</span><span class="n">filename</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">db</span><span class="o">.</span><span class="n">is_attached</span><span class="p">(</span><span class="n">other_db</span><span class="p">):</span>
+                <span class="n">other_schema</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">attached_as</span><span class="p">(</span><span class="n">other_db</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Attach the other system_db in order to do comparisons.</span>
+                <span class="n">other_schema</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="n">other_db</span><span class="p">)</span>
+                <span class="n">detach</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">other_schema</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">schema</span>
+
+        <span class="n">bondset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bondset</span>
+        <span class="n">other_bondset</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">bondset</span>
+
+        <span class="n">changed</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">last</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT * FROM</span>
+<span class="s2">        (</span>
+<span class="s2">          SELECT </span><span class="si">{</span><span class="n">column_def</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">            FROM </span><span class="si">{</span><span class="n">other_schema</span><span class="si">}</span><span class="s2">.bond</span>
+<span class="s2">           WHERE id</span>
+<span class="s2">              IN (</span>
+<span class="s2">                  SELECT bond</span>
+<span class="s2">                    FROM </span><span class="si">{</span><span class="n">other_schema</span><span class="si">}</span><span class="s2">.bondset_bond</span>
+<span class="s2">                   WHERE bondset = </span><span class="si">{</span><span class="n">other_bondset</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">                  )</span>
+<span class="s2">          EXCEPT</span>
+<span class="s2">          SELECT </span><span class="si">{</span><span class="n">column_def</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">            FROM </span><span class="si">{</span><span class="n">schema</span><span class="si">}</span><span class="s2">.bond</span>
+<span class="s2">           WHERE id</span>
+<span class="s2">              IN (</span>
+<span class="s2">                  SELECT bond</span>
+<span class="s2">                    FROM </span><span class="si">{</span><span class="n">schema</span><span class="si">}</span><span class="s2">.bondset_bond</span>
+<span class="s2">                    WHERE bondset = </span><span class="si">{</span><span class="n">bondset</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">                 )</span>
+<span class="s2">        )</span>
+<span class="s2">         UNION ALL</span>
+<span class="s2">        SELECT * FROM</span>
+<span class="s2">        (</span>
+<span class="s2">          SELECT </span><span class="si">{</span><span class="n">column_def</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">            FROM </span><span class="si">{</span><span class="n">schema</span><span class="si">}</span><span class="s2">.bond</span>
+<span class="s2">           WHERE id</span>
+<span class="s2">              IN (</span>
+<span class="s2">                  SELECT bond</span>
+<span class="s2">                    FROM </span><span class="si">{</span><span class="n">schema</span><span class="si">}</span><span class="s2">.bondset_bond</span>
+<span class="s2">                   WHERE bondset = </span><span class="si">{</span><span class="n">bondset</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">                 )</span>
+<span class="s2">          EXCEPT</span>
+<span class="s2">          SELECT </span><span class="si">{</span><span class="n">column_def</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">            FROM </span><span class="si">{</span><span class="n">other_schema</span><span class="si">}</span><span class="s2">.bond</span>
+<span class="s2">           WHERE id</span>
+<span class="s2">              IN (</span>
+<span class="s2">                  SELECT bond</span>
+<span class="s2">                    FROM </span><span class="si">{</span><span class="n">other_schema</span><span class="si">}</span><span class="s2">.bondset_bond</span>
+<span class="s2">                   WHERE bondset = </span><span class="si">{</span><span class="n">other_bondset</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">                 )</span>
+<span class="s2">        )</span>
+<span class="s2">        ORDER BY id</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">last</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">last</span> <span class="o">=</span> <span class="n">row</span>
+            <span class="k">elif</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">last</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]:</span>
+                <span class="c1"># changes = []</span>
+                <span class="n">changes</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">k1</span><span class="p">,</span> <span class="n">v1</span><span class="p">,</span> <span class="n">v2</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">last</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">last</span><span class="p">,</span> <span class="n">row</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">v1</span> <span class="o">!=</span> <span class="n">v2</span><span class="p">:</span>
+                        <span class="n">changes</span><span class="o">.</span><span class="n">add</span><span class="p">((</span><span class="n">k1</span><span class="p">,</span> <span class="n">v1</span><span class="p">,</span> <span class="n">v2</span><span class="p">))</span>
+                <span class="n">changed</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">changes</span>
+                <span class="n">last</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">last</span> <span class="o">=</span> <span class="n">row</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">changed</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">result</span><span class="p">[</span><span class="s1">&#39;changed&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">changed</span>
+
+        <span class="c1"># See about the rows added</span>
+        <span class="n">added</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT </span><span class="si">{</span><span class="n">column_defs</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">          FROM </span><span class="si">{</span><span class="n">schema</span><span class="si">}</span><span class="s2">.bond</span>
+<span class="s2">         WHERE id</span>
+<span class="s2">            IN (</span>
+<span class="s2">                SELECT bond</span>
+<span class="s2">                  FROM </span><span class="si">{</span><span class="n">schema</span><span class="si">}</span><span class="s2">.bondset_bond</span>
+<span class="s2">                 WHERE bondset = </span><span class="si">{</span><span class="n">bondset</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">               )</span>
+<span class="s2">           AND id</span>
+<span class="s2">        NOT IN (</span>
+<span class="s2">                SELECT bond</span>
+<span class="s2">                  FROM </span><span class="si">{</span><span class="n">other_schema</span><span class="si">}</span><span class="s2">.bondset_bond</span>
+<span class="s2">                 WHERE bondset = </span><span class="si">{</span><span class="n">other_bondset</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">               )</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">):</span>
+            <span class="n">added</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">added</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">result</span><span class="p">[</span><span class="s1">&#39;columns in added rows&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">keys</span><span class="p">()[</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="n">result</span><span class="p">[</span><span class="s1">&#39;added&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">added</span>
+
+        <span class="c1"># See about the rows deleted</span>
+        <span class="n">deleted</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT </span><span class="si">{</span><span class="n">other_column_defs</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">          FROM </span><span class="si">{</span><span class="n">other_schema</span><span class="si">}</span><span class="s2">.bond</span>
+<span class="s2">         WHERE id</span>
+<span class="s2">            IN (</span>
+<span class="s2">                SELECT bond</span>
+<span class="s2">                  FROM </span><span class="si">{</span><span class="n">other_schema</span><span class="si">}</span><span class="s2">.bondset_bond</span>
+<span class="s2">                 WHERE bondset = </span><span class="si">{</span><span class="n">other_bondset</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">               )</span>
+<span class="s2">           AND id</span>
+<span class="s2">        NOT IN (</span>
+<span class="s2">                SELECT bond</span>
+<span class="s2">                  FROM </span><span class="si">{</span><span class="n">schema</span><span class="si">}</span><span class="s2">.bondset_bond</span>
+<span class="s2">                 WHERE bondset = </span><span class="si">{</span><span class="n">bondset</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">               )</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">):</span>
+            <span class="n">deleted</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">deleted</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">result</span><span class="p">[</span><span class="s1">&#39;columns in deleted rows&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">keys</span><span class="p">()[</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="n">result</span><span class="p">[</span><span class="s1">&#39;deleted&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">deleted</span>
+
+        <span class="c1"># Detach the other database if needed</span>
+        <span class="k">if</span> <span class="n">detach</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">system_db</span><span class="o">.</span><span class="n">detach</span><span class="p">(</span><span class="n">other_db</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">result</span></div>
+
+<div class="viewcode-block" id="_Bonds.get_as_dict"><a class="viewcode-back" href="../../molsystem.html#molsystem.bonds._Bonds.get_as_dict">[docs]</a>    <span class="k">def</span> <span class="nf">get_as_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the bond data as a Python dictionary of lists.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        args : [str]</span>
+<span class="sd">            Added selection criteria for the SQL, one word at a time.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict(str: [])</span>
+<span class="sd">            A dictionary whose keys are the column names and values as lists</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bonds</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">rows</span><span class="o">.</span><span class="n">description</span><span class="p">]</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">columns</span><span class="p">}</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">columns</span><span class="p">,</span> <span class="n">row</span><span class="p">):</span>
+                <span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">data</span></div>
+
+<div class="viewcode-block" id="_Bonds.get_bond"><a class="viewcode-back" href="../../molsystem.html#molsystem.bonds._Bonds.get_bond">[docs]</a>    <span class="k">def</span> <span class="nf">get_bond</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the row for a bond.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        i : int</span>
+<span class="sd">            Either the first atom in the bond or the bond id.</span>
+<span class="sd">        j : int = None</span>
+<span class="sd">            If not None, then the second atom in the bond.</span>
+<span class="sd">        force : bool = False</span>
+<span class="sd">            If true, ignore missing bonds.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        row : SQLite3.Row</span>
+<span class="sd">            The Row object for the bond</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">j</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;SELECT bond.* FROM bond, bondset_bond&quot;</span>
+                <span class="s2">&quot; WHERE id = ?&quot;</span>
+                <span class="s2">&quot;   AND bondset_bond.bond = bond.id&quot;</span>
+                <span class="s2">&quot;   AND bondset_bond.bondset = ?&quot;</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bondset</span><span class="p">))</span>
+            <span class="n">row</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">row</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">force</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;No bond id = </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1"> found&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="n">j</span><span class="p">:</span>
+                <span class="n">j</span><span class="p">,</span> <span class="n">i</span> <span class="o">=</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">&quot;SELECT bond.* FROM bond, bondset_bond&quot;</span>
+                <span class="s2">&quot; WHERE bond.i = ? AND bond.j = ?&quot;</span>
+                <span class="s2">&quot;   AND bondset_bond.bondset = ?&quot;</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bondset</span><span class="p">))</span>
+            <span class="n">row</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">row</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">force</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;No bond from </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1"> to </span><span class="si">{</span><span class="n">j</span><span class="si">}</span><span class="s1"> found&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">row</span></div>
+
+<div class="viewcode-block" id="_Bonds.get_column"><a class="viewcode-back" href="../../molsystem.html#molsystem.bonds._Bonds.get_column">[docs]</a>    <span class="k">def</span> <span class="nf">get_column</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a column of data.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        key : str</span>
+<span class="sd">            The column (attribute) to getLogger</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        column : Column</span>
+<span class="sd">            The column object requested.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;i&#39;</span> <span class="ow">or</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;j&#39;</span> <span class="ow">or</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;id&#39;</span><span class="p">:</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">               FROM bond, bondset_bond</span>
+<span class="s2">              WHERE bond.id = bondset_bond.bond</span>
+<span class="s2">                AND bondset_bond.bondset = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">bondset</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">            &quot;&quot;&quot;</span>
+            <span class="k">return</span> <span class="n">_FrozenColumn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">sql</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT id, </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">               FROM bond, bondset_bond</span>
+<span class="s2">              WHERE bond.id = bondset_bond.bond</span>
+<span class="s2">                AND bondset_bond.bondset = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">bondset</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">            &quot;&quot;&quot;</span>
+            <span class="k">return</span> <span class="n">_Column</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">sql</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_Bonds.get_column_data"><a class="viewcode-back" href="../../molsystem.html#molsystem.bonds._Bonds.get_column_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_column_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a column of data as a Python list.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        key : str</span>
+<span class="sd">            The column (attribute) to getLogger</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        column : Column</span>
+<span class="sd">            The column object requested.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">          FROM bond, bondset_bond</span>
+<span class="s2">         WHERE bond.id = bondset_bond.bond</span>
+<span class="s2">           AND bondset_bond.bondset = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">bondset</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">)]</span></div>
+
+<div class="viewcode-block" id="_Bonds.to_dataframe"><a class="viewcode-back" href="../../molsystem.html#molsystem.bonds._Bonds.to_dataframe">[docs]</a>    <span class="k">def</span> <span class="nf">to_dataframe</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the bonds as a Pandas Dataframe.&quot;&quot;&quot;</span>
+        <span class="n">cursor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bonds</span><span class="p">()</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span> <span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">cursor</span><span class="p">}</span>
+        <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">cursor</span><span class="o">.</span><span class="n">description</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span>
+
+        <span class="n">df</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">orient</span><span class="o">=</span><span class="s1">&#39;index&#39;</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">columns</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">df</span></div></div>
+
+
+<div class="viewcode-block" id="_SubsetBonds"><a class="viewcode-back" href="../../molsystem.html#molsystem.bonds._SubsetBonds">[docs]</a><span class="k">class</span> <span class="nc">_SubsetBonds</span><span class="p">(</span><span class="n">_Bonds</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The Bonds class describes the bonds in a subset</span>
+
+<span class="sd">    :meta public:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">configuration</span><span class="p">,</span> <span class="n">subset_id</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sid</span> <span class="o">=</span> <span class="n">subset_id</span>
+
+        <span class="c1"># Caching</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_template_id</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_template</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">configuration</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">ids</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The ids of the bonds in the subset.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_bond_ids</span><span class="p">()</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">n_bonds</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;The number of bonds.&quot;&quot;&quot;</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT COUNT(*) FROM bond</span>
+<span class="s2">         WHERE id IN (SELECT bond FROM bondset_bond WHERE bondset = ?)</span>
+<span class="s2">           AND i IN (SELECT atom FROM subset_atom WHERE subset = ?)</span>
+<span class="s2">           AND j IN (SELECT atom FROM subset_atom WHERE subset = ?)</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bondset</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">subset_id</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+
+<div class="viewcode-block" id="_SubsetBonds.append"><a class="viewcode-back" href="../../molsystem.html#molsystem.bonds._SubsetBonds.append">[docs]</a>    <span class="k">def</span> <span class="nf">append</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Append one or more bonds.</span>
+
+<span class="sd">        Not currently allowed in subsets.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Can&#39;t add bonds in a subset yet.&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_SubsetBonds.bonds"><a class="viewcode-back" href="../../molsystem.html#molsystem.bonds._SubsetBonds.bonds">[docs]</a>    <span class="k">def</span> <span class="nf">bonds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns an iterator over the bonds.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        args : [str]</span>
+<span class="sd">            Added selection criteria for the SQL, one word at a time.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        sqlite3.Cursor</span>
+<span class="sd">            A cursor that returns sqlite3.Row objects for the bonds.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT * FROM bond</span>
+<span class="s2">         WHERE id IN (SELECT bond FROM bondset_bond WHERE bondset = ?)</span>
+<span class="s2">           AND i IN (SELECT atom FROM subset_atom WHERE subset = ?)</span>
+<span class="s2">           AND j IN (SELECT atom FROM subset_atom WHERE subset = ?)</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bondset</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">subset_id</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="_SubsetBonds.contains_bond"><a class="viewcode-back" href="../../molsystem.html#molsystem.bonds._SubsetBonds.contains_bond">[docs]</a>    <span class="k">def</span> <span class="nf">contains_bond</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Whether there is a bond between atoms i and j.&quot;&quot;&quot;</span>
+        <span class="c1"># get canonical order</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="n">j</span><span class="p">:</span>
+            <span class="n">j</span><span class="p">,</span> <span class="n">i</span> <span class="o">=</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT COUNT(*) FROM bond</span>
+<span class="s2">         WHERE i = ? AND j = ?</span>
+<span class="s2">           AND id IN (SELECT bond FROM bondset_bond WHERE bondset = ?)</span>
+<span class="s2">           AND i IN (SELECT atom FROM subset_atom WHERE subset = ?)</span>
+<span class="s2">           AND j IN (SELECT atom FROM subset_atom WHERE subset = ?)</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bondset</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">subset_id</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span></div>
+
+<div class="viewcode-block" id="_SubsetBonds.delete_bond"><a class="viewcode-back" href="../../molsystem.html#molsystem.bonds._SubsetBonds.delete_bond">[docs]</a>    <span class="k">def</span> <span class="nf">delete_bond</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Delete a bond, if present.</span>
+
+
+<span class="sd">        Not currently allowed in subsets.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Can&#39;t delete bonds from a subset yet.&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_SubsetBonds.delete"><a class="viewcode-back" href="../../molsystem.html#molsystem.bonds._SubsetBonds.delete">[docs]</a>    <span class="k">def</span> <span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atoms</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Deletes all the bonds, optionally from atoms.</span>
+
+<span class="sd">        Not currently allowed in subsets.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Can&#39;t add bonds in a subset yet.&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_SubsetBonds.diff"><a class="viewcode-back" href="../../molsystem.html#molsystem.bonds._SubsetBonds.diff">[docs]</a>    <span class="k">def</span> <span class="nf">diff</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Difference between these bonds and another</span>
+
+<span class="sd">        Not currently allowed in subsets.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Can&#39;t add bonds in a subset yet.&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_SubsetBonds.get_bond"><a class="viewcode-back" href="../../molsystem.html#molsystem.bonds._SubsetBonds.get_bond">[docs]</a>    <span class="k">def</span> <span class="nf">get_bond</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return the row for a bond.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        i : int</span>
+<span class="sd">            Either the first atom in the bond or the bond id.</span>
+<span class="sd">        j : int = None</span>
+<span class="sd">            If not None, then the second atom in the bond.</span>
+<span class="sd">        force : bool = False</span>
+<span class="sd">            If true, ignore missing bonds.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        row : SQLite3.Row</span>
+<span class="sd">            The Row object for the bond</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">j</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT * FROM bond</span>
+<span class="s2">             WHERE id = ?</span>
+<span class="s2">               AND id IN (SELECT bond FROM bondset_bond WHERE bondset = ?)</span>
+<span class="s2">               AND i IN (SELECT atom FROM subset_atom WHERE subset = ?)</span>
+<span class="s2">               AND j IN (SELECT atom FROM subset_atom WHERE subset = ?)</span>
+<span class="s2">            &quot;&quot;&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                <span class="n">sql</span><span class="p">,</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bondset</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">subset_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">subset_id</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">row</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">row</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">force</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;No bond id = </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1"> found&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="n">j</span><span class="p">:</span>
+                <span class="n">j</span><span class="p">,</span> <span class="n">i</span> <span class="o">=</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT COUNT(*) FROM bond</span>
+<span class="s2">             WHERE i = ? AND j = ?</span>
+<span class="s2">               AND id IN (SELECT bond FROM bondset_bond WHERE bondset = ?)</span>
+<span class="s2">               AND i IN (SELECT atom FROM subset_atom WHERE subset = ?)</span>
+<span class="s2">               AND j IN (SELECT atom FROM subset_atom WHERE subset = ?)</span>
+<span class="s2">            &quot;&quot;&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+                <span class="n">sql</span><span class="p">,</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bondset</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">subset_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">subset_id</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">row</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cursor</span><span class="o">.</span><span class="n">fetchone</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">row</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">force</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;No bond from </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1"> to </span><span class="si">{</span><span class="n">j</span><span class="si">}</span><span class="s1"> found&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">row</span></div>
+
+<div class="viewcode-block" id="_SubsetBonds.get_column"><a class="viewcode-back" href="../../molsystem.html#molsystem.bonds._SubsetBonds.get_column">[docs]</a>    <span class="k">def</span> <span class="nf">get_column</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a column of data.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        key : str</span>
+<span class="sd">            The column (attribute) to getLogger</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        column : Column</span>
+<span class="sd">            The column object requested.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;i&#39;</span> <span class="ow">or</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;j&#39;</span> <span class="ow">or</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;id&#39;</span><span class="p">:</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> FROM bond</span>
+<span class="s2">               AND id IN (</span>
+<span class="s2">                  SELECT bond FROM bondset_bond WHERE bondset = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">bondset</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">               )</span>
+<span class="s2">               AND i IN (</span>
+<span class="s2">                  SELECT atom FROM subset_atom WHERE subset = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">subset_id</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">               )</span>
+<span class="s2">               AND j IN (</span>
+<span class="s2">                  SELECT atom FROM subset_atom WHERE subset = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">subset_id</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">            )</span>
+<span class="s2">            &quot;&quot;&quot;</span>
+            <span class="k">return</span> <span class="n">_FrozenColumn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">sql</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            SELECT id, </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> FROM bond</span>
+<span class="s2">               AND id IN (</span>
+<span class="s2">                  SELECT bond FROM bondset_bond WHERE bondset = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">bondset</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">               )</span>
+<span class="s2">               AND i IN (</span>
+<span class="s2">                  SELECT atom FROM subset_atom WHERE subset = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">subset_id</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">               )</span>
+<span class="s2">               AND j IN (</span>
+<span class="s2">                  SELECT atom FROM subset_atom WHERE subset = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">subset_id</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">            )</span>
+<span class="s2">            &quot;&quot;&quot;</span>
+            <span class="k">return</span> <span class="n">_Column</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">sql</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_SubsetBonds.get_column_data"><a class="viewcode-back" href="../../molsystem.html#molsystem.bonds._SubsetBonds.get_column_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_column_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a column of data as a Python list.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        key : str</span>
+<span class="sd">            The column (attribute) to getLogger</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        column : Column</span>
+<span class="sd">            The column object requested.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        SELECT </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> FROM bond</span>
+<span class="s2">           AND id IN (</span>
+<span class="s2">              SELECT bond FROM bondset_bond WHERE bondset = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">bondset</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">           )</span>
+<span class="s2">           AND i IN (</span>
+<span class="s2">              SELECT atom FROM subset_atom WHERE subset = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">subset_id</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">           )</span>
+<span class="s2">           AND j IN (</span>
+<span class="s2">              SELECT atom FROM subset_atom WHERE subset = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">subset_id</span><span class="si">}</span><span class="s2"></span>
+<span class="s2">        )</span>
+<span class="s2">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">)]</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+
+    </p>
+  </div>
+
+<p>
+<div class="row">
+  <div class="column_left">
+    <a href="https://molssi.org/" target="_blank" title="Go to MolSSI in a new tab">
+      <img src="/_images/MolSSI.jpg" alt="The MolSSI" style="border:0;">
+    </a>
+  </div>
+  <div class="column">
+    &copy; Copyright 2020, the Molecular Sciences Software Institute,
+    which receives funding from the National Science Foundation under award ACI-1547580
+  </div>
+  <div class="column_right">
+    <a href="https://nsf.gov/" target="_blank" title="Go to the NSF in a new tab">
+      <img src="/_images/NSF_4-Color_bitmap_Logo.png" alt="The NSF" style="border:0;">
+    </a>
+  </div>
+</div>
+
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

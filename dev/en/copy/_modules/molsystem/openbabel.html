@@ -1,0 +1,282 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>molsystem.openbabel &mdash; MolSystem Step 2020.12.5+21.g1f45da7 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/custom.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> MolSystem Step
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2020.12.5+21.g1f45da7
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../user/index.html">User Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developer/index.html">Developer Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../authors.html">Credits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">History</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://molssi-seamm.github.io">Main SEAMM documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">MolSystem Step</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>molsystem.openbabel</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for molsystem.openbabel</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="sd">&quot;&quot;&quot;Interface to openbabel.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">pprint</span>  <span class="c1"># noqa: F401</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">openbabel</span> <span class="kn">import</span> <span class="n">openbabel</span>
+<span class="k">except</span> <span class="ne">ModuleNotFoundError</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span>
+        <span class="s1">&#39;Please install openbabel using conda:</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="s1">&#39;     conda install -c conda-forge openbabel&#39;</span>
+    <span class="p">)</span>
+    <span class="k">raise</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="OpenBabelMixin"><a class="viewcode-back" href="../../developer/molsystem.html#molsystem.openbabel.OpenBabelMixin">[docs]</a><span class="k">class</span> <span class="nc">OpenBabelMixin</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;A mixin for handling OpenBabel via its Python interface.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="OpenBabelMixin.to_OBMol"><a class="viewcode-back" href="../../developer/molsystem.html#molsystem.openbabel.OpenBabelMixin.to_OBMol">[docs]</a>    <span class="k">def</span> <span class="nf">to_OBMol</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return an OBMol object for the configuration, template, or subset.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ob_mol</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBMol</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">atno</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">atomic_numbers</span><span class="p">:</span>
+            <span class="n">ob_atom</span> <span class="o">=</span> <span class="n">ob_mol</span><span class="o">.</span><span class="n">NewAtom</span><span class="p">()</span>
+            <span class="n">ob_atom</span><span class="o">.</span><span class="n">SetAtomicNum</span><span class="p">(</span><span class="n">atno</span><span class="p">)</span>
+
+        <span class="c1"># 1-based indices in ob.</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="p">{</span><span class="n">j</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">)}</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">bonds</span><span class="o">.</span><span class="n">bonds</span><span class="p">():</span>
+            <span class="n">ob_mol</span><span class="o">.</span><span class="n">AddBond</span><span class="p">(</span><span class="n">index</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">]],</span> <span class="n">index</span><span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="s1">&#39;j&#39;</span><span class="p">]],</span> <span class="n">row</span><span class="p">[</span><span class="s1">&#39;bondorder&#39;</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">ob_mol</span></div>
+
+<div class="viewcode-block" id="OpenBabelMixin.find_substructures"><a class="viewcode-back" href="../../developer/molsystem.html#molsystem.openbabel.OpenBabelMixin.find_substructures">[docs]</a>    <span class="k">def</span> <span class="nf">find_substructures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">template</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Find the substructures matching the template.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        template : str, _Configuration, _Template, or _Subset</span>
+<span class="sd">            The template, which may be a SMARTS string, or a molecular object.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        [[int]]</span>
+<span class="sd">            Lists of atom ids for matches.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">template</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">smarts</span> <span class="o">=</span> <span class="n">template</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">smarts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">smiles</span>
+
+        <span class="n">ob_mol</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">to_OBMol</span><span class="p">()</span>
+
+        <span class="n">pattern</span> <span class="o">=</span> <span class="n">openbabel</span><span class="o">.</span><span class="n">OBSmartsPattern</span><span class="p">()</span>
+        <span class="n">pattern</span><span class="o">.</span><span class="n">Init</span><span class="p">(</span><span class="n">smarts</span><span class="p">)</span>
+        <span class="n">pattern</span><span class="o">.</span><span class="n">Match</span><span class="p">(</span><span class="n">ob_mol</span><span class="p">)</span>
+        <span class="n">maplist</span> <span class="o">=</span> <span class="n">pattern</span><span class="o">.</span><span class="n">GetUMapList</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">maplist</span><span class="p">]</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+
+    </p>
+  </div>
+
+<p>
+<div class="row">
+  <div class="column_left">
+    <a href="https://molssi.org/" target="_blank" title="Go to MolSSI in a new tab">
+      <img src="/_images/MolSSI.jpg" alt="The MolSSI" style="border:0;">
+    </a>
+  </div>
+  <div class="column">
+    &copy; Copyright 2020, the Molecular Sciences Software Institute,
+    which receives funding from the National Science Foundation under award ACI-1547580
+  </div>
+  <div class="column_right">
+    <a href="https://nsf.gov/" target="_blank" title="Go to the NSF in a new tab">
+      <img src="/_images/NSF_4-Color_bitmap_Logo.png" alt="The NSF" style="border:0;">
+    </a>
+  </div>
+</div>
+
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

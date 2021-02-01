@@ -1,0 +1,698 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>molsystem.pdb &mdash; MolSystem Step 2020.12.5+21.g1f45da7 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/css/custom.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> MolSystem Step
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                2020.12.5+21.g1f45da7
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../user/index.html">User Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developer/index.html">Developer Documentation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../authors.html">Credits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../history.html">History</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://molssi-seamm.github.io">Main SEAMM documentation</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">MolSystem Step</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>molsystem.pdb</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for molsystem.pdb</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="sd">&quot;&quot;&quot;Functions for handling PDB files</span>
+
+<span class="sd">To Do</span>
+<span class="sd">^^^^^</span>
+
+<span class="sd">Need to understand more fully the PDB/mmcif format and the how to</span>
+<span class="sd">carry the information about residues, chains, hetero groups, waters, etc.</span>
+<span class="sd">At the moment this is ignoring much of the information, and putting residue,</span>
+<span class="sd">chain, etc information directly on atoms.</span>
+
+<span class="sd">I think we should use templates and subsets, but am not (yet) sure.</span>
+
+<span class="sd">Presumably this metadata is most useful for setting up complicated</span>
+<span class="sd">simulations.</span>
+
+<span class="sd">File Format</span>
+<span class="sd">^^^^^^^^^^^</span>
+
+<span class="sd">For complete documentation, see</span>
+<span class="sd">http://www.wwpdb.org/documentation/file-format-content/format33/v3.3.html</span>
+
+<span class="sd">Order of records::</span>
+
+<span class="sd">    RECORD TYPE             EXISTENCE           CONDITIONS IF  OPTIONAL</span>
+<span class="sd">    --------------------------------------------------------------------------------------</span>
+<span class="sd">    HEADER                  Mandatory</span>
+<span class="sd">    OBSLTE                  Optional            Mandatory in  entries that have been</span>
+<span class="sd">                                                replaced by a newer entry.</span>
+<span class="sd">    TITLE                   Mandatory</span>
+<span class="sd">    SPLIT                   Optional            Mandatory when  large macromolecular</span>
+<span class="sd">                                                complexes  are split into multiple PDB</span>
+<span class="sd">                                                entries.</span>
+<span class="sd">    CAVEAT                  Optional            Mandatory when there are outstanding  errors</span>
+<span class="sd">                                                such  as chirality.</span>
+<span class="sd">    COMPND                  Mandatory</span>
+<span class="sd">    SOURCE                  Mandatory</span>
+<span class="sd">    KEYWDS                  Mandatory</span>
+<span class="sd">    EXPDTA                  Mandatory</span>
+<span class="sd">    NUMMDL                  Optional            Mandatory for  NMR ensemble entries.</span>
+<span class="sd">    MDLTYP                  Optional            Mandatory for  NMR minimized average</span>
+<span class="sd">                                                Structures or when the entire  polymer</span>
+<span class="sd">                                                chain contains C alpha or P atoms only.</span>
+<span class="sd">    AUTHOR                  Mandatory</span>
+<span class="sd">    REVDAT                  Mandatory</span>
+<span class="sd">    SPRSDE                  Optional            Mandatory for a replacement entry.</span>
+<span class="sd">    JRNL                    Optional            Mandatory for a publication describes</span>
+<span class="sd">                                                the experiment.</span>
+<span class="sd">    REMARK 0                Optional            Mandatory for a re-refined structure</span>
+<span class="sd">    REMARK 1                Optional</span>
+<span class="sd">    REMARK 2                Mandatory</span>
+<span class="sd">    REMARK 3                Mandatory</span>
+<span class="sd">    REMARK N                Optional            Mandatory under certain conditions.</span>
+<span class="sd">    DBREF                   Optional            Mandatory for all polymers.</span>
+<span class="sd">    DBREF1/DBREF2           Optional            Mandatory when certain sequence  database</span>
+<span class="sd">                                                accession  and/or sequence numbering</span>
+<span class="sd">                                                does  not fit preceding DBREF format.</span>
+<span class="sd">    SEQADV                  Optional            Mandatory if sequence  conflict exists.</span>
+<span class="sd">    SEQRES                  Mandatory           Mandatory if ATOM records exist.</span>
+<span class="sd">    MODRES                  Optional            Mandatory if modified group exists  in the</span>
+<span class="sd">                                                coordinates.</span>
+<span class="sd">    HET                     Optional            Mandatory if a non-standard group other</span>
+<span class="sd">                                                than water appears in the coordinates.</span>
+<span class="sd">    HETNAM                  Optional            Mandatory if a non-standard group other</span>
+<span class="sd">                                                than  water appears in the coordinates.</span>
+<span class="sd">    HETSYN                  Optional</span>
+<span class="sd">    FORMUL                  Optional            Mandatory if a non-standard group or</span>
+<span class="sd">                                                water appears in the coordinates.</span>
+<span class="sd">    HELIX                   Optional</span>
+<span class="sd">    SHEET                   Optional</span>
+<span class="sd">    SSBOND                  Optional            Mandatory if a  disulfide bond is present.</span>
+<span class="sd">    LINK                    Optional            Mandatory if  non-standard residues appear</span>
+<span class="sd">                                                in a  polymer</span>
+<span class="sd">    CISPEP                  Optional</span>
+<span class="sd">    SITE                    Optional</span>
+<span class="sd">    CRYST1                  Mandatory</span>
+<span class="sd">    ORIGX1 ORIGX2 ORIGX3    Mandatory</span>
+<span class="sd">    SCALE1 SCALE2 SCALE3    Mandatory</span>
+<span class="sd">    MTRIX1 MTRIX2 MTRIX3    Optional            Mandatory if  the complete asymmetric unit</span>
+<span class="sd">                                                must  be generated from the given coordinates</span>
+<span class="sd">                                                using non-crystallographic symmetry.</span>
+<span class="sd">    MODEL                   Optional            Mandatory if more than one model</span>
+<span class="sd">                                                is  present in the entry.</span>
+<span class="sd">    ATOM                    Optional            Mandatory if standard residues exist.</span>
+<span class="sd">    ANISOU                  Optional</span>
+<span class="sd">    TER                     Optional            Mandatory if ATOM records exist.</span>
+<span class="sd">    HETATM                  Optional            Mandatory if non-standard group exists.</span>
+<span class="sd">    ENDMDL                  Optional            Mandatory if MODEL appears.</span>
+<span class="sd">    CONECT                  Optional            Mandatory if non-standard group appears</span>
+<span class="sd">                                                and  if LINK or SSBOND records exist.</span>
+<span class="sd">    MASTER                  Mandatory</span>
+<span class="sd">    END                     Mandatory</span>
+
+<span class="sd">Description of HETATM records::</span>
+
+<span class="sd">    COLUMNS       DATA  TYPE     FIELD         DEFINITION</span>
+<span class="sd">    -----------------------------------------------------------------------</span>
+<span class="sd">     1 - 6        Record name    &quot;HETATM&quot;</span>
+<span class="sd">     7 - 11       Integer        serial        Atom serial number.</span>
+<span class="sd">    13 - 16       Atom           name          Atom name.</span>
+<span class="sd">    17            Character      altLoc        Alternate location indicator.</span>
+<span class="sd">    18 - 20       Residue name   resName       Residue name.</span>
+<span class="sd">    22            Character      chainID       Chain identifier.</span>
+<span class="sd">    23 - 26       Integer        resSeq        Residue sequence number.</span>
+<span class="sd">    27            AChar          iCode         Code for insertion of residues.</span>
+<span class="sd">    31 - 38       Real(8.3)      x             Orthogonal coordinates for X.</span>
+<span class="sd">    39 - 46       Real(8.3)      y             Orthogonal coordinates for Y.</span>
+<span class="sd">    47 - 54       Real(8.3)      z             Orthogonal coordinates for Z.</span>
+<span class="sd">    55 - 60       Real(6.2)      occupancy     Occupancy.</span>
+<span class="sd">    61 - 66       Real(6.2)      tempFactor    Temperature factor.</span>
+<span class="sd">    77 - 78       LString(2)     element       Element symbol; right-justified.</span>
+<span class="sd">    79 - 80       LString(2)     charge        Charge on the atom.</span>
+
+<span class="sd">Description of CONECT records::</span>
+
+<span class="sd">    COLUMNS       DATA  TYPE      FIELD        DEFINITION</span>
+<span class="sd">    -------------------------------------------------------------------------</span>
+<span class="sd">     1 -  6        Record name    &quot;CONECT&quot;</span>
+<span class="sd">     7 - 11        Integer        serial       Atom  serial number</span>
+<span class="sd">    12 - 16        Integer        serial       Serial number of bonded atom</span>
+<span class="sd">    17 - 21        Integer        serial       Serial  number of bonded atom</span>
+<span class="sd">    22 - 26        Integer        serial       Serial number of bonded atom</span>
+<span class="sd">    27 - 31        Integer        serial       Serial number of bonded atom</span>
+<span class="sd">&quot;&quot;&quot;</span>  <span class="c1"># noqa: E501</span>
+
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="PDBMixin"><a class="viewcode-back" href="../../molsystem.html#molsystem.pdb.PDBMixin">[docs]</a><span class="k">class</span> <span class="nc">PDBMixin</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;A mixin for handling PDB files.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="PDBMixin.to_pdb_text"><a class="viewcode-back" href="../../molsystem.html#molsystem.pdb.PDBMixin.to_pdb_text">[docs]</a>    <span class="k">def</span> <span class="nf">to_pdb_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">comment</span><span class="o">=</span><span class="s1">&#39;Exported from SEAMM&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create the text of the PDB file from the system.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        title : str = None</span>
+<span class="sd">            The title for the structure, by default the system name.</span>
+<span class="sd">        comment : str = &#39;Exported from SEAMM&#39;</span>
+<span class="sd">            Comment line</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        text : str</span>
+<span class="sd">            The text of the file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">atoms</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span>
+
+        <span class="n">n_atoms</span> <span class="o">=</span> <span class="n">atoms</span><span class="o">.</span><span class="n">n_atoms</span>
+
+        <span class="n">date_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%m</span><span class="si">%d</span><span class="s1">%y%H%M&#39;</span><span class="p">)</span>
+
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;COMPND    UNNAMED&#39;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;AUTHOR    MolSSI SEAMM at &#39;</span> <span class="o">+</span> <span class="n">date_time</span><span class="p">)</span>
+
+        <span class="c1"># atoms</span>
+
+        <span class="k">if</span> <span class="s1">&#39;resname&#39;</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">:</span>
+            <span class="n">resnames</span> <span class="o">=</span> <span class="n">atoms</span><span class="p">[</span><span class="s1">&#39;resname&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">resnames</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;UNK&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_atoms</span>
+
+        <span class="k">if</span> <span class="s1">&#39;chainid&#39;</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">:</span>
+            <span class="n">chainids</span> <span class="o">=</span> <span class="n">atoms</span><span class="p">[</span><span class="s1">&#39;chainid&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">chainids</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;A&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_atoms</span>
+
+        <span class="k">if</span> <span class="s1">&#39;resseq&#39;</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">:</span>
+            <span class="n">resseqs</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">[</span><span class="s1">&#39;resseq&#39;</span><span class="p">]]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">resseqs</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_atoms</span>
+
+        <span class="k">if</span> <span class="s1">&#39;occupancy&#39;</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">:</span>
+            <span class="n">occupancies</span> <span class="o">=</span> <span class="n">atoms</span><span class="p">[</span><span class="s1">&#39;occupancy&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">occupancies</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_atoms</span>
+
+        <span class="k">if</span> <span class="s1">&#39;tempfactor&#39;</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">:</span>
+            <span class="n">tempfactors</span> <span class="o">=</span> <span class="n">atoms</span><span class="p">[</span><span class="s1">&#39;tempfactor&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">tempfactors</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_atoms</span>
+
+        <span class="k">if</span> <span class="s1">&#39;formal_charge&#39;</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">:</span>
+            <span class="n">charges</span> <span class="o">=</span> <span class="n">atoms</span><span class="p">[</span><span class="s1">&#39;formal_charge&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">charges</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39; &#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_atoms</span>
+
+        <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">symbols</span> <span class="o">=</span> <span class="n">atoms</span><span class="o">.</span><span class="n">symbols</span>
+        <span class="n">coordinates</span> <span class="o">=</span> <span class="n">atoms</span><span class="o">.</span><span class="n">coordinates</span>
+        <span class="k">if</span> <span class="s1">&#39;name&#39;</span> <span class="ow">in</span> <span class="n">atoms</span><span class="p">:</span>
+            <span class="n">names</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">symbol</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">name</span>
+                <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">atoms</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">],</span> <span class="n">symbols</span><span class="p">)</span>
+            <span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">names</span> <span class="o">=</span> <span class="n">symbols</span>
+
+        <span class="k">for</span> <span class="p">(</span>
+            <span class="n">element</span><span class="p">,</span> <span class="n">xyz</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">resname</span><span class="p">,</span> <span class="n">chainid</span><span class="p">,</span> <span class="n">resseq</span><span class="p">,</span> <span class="n">occupancy</span><span class="p">,</span>
+            <span class="n">tempfactor</span><span class="p">,</span> <span class="n">charge</span>
+        <span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+            <span class="n">symbols</span><span class="p">,</span> <span class="n">coordinates</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">resnames</span><span class="p">,</span> <span class="n">chainids</span><span class="p">,</span> <span class="n">resseqs</span><span class="p">,</span>
+            <span class="n">occupancies</span><span class="p">,</span> <span class="n">tempfactors</span><span class="p">,</span> <span class="n">charges</span>
+        <span class="p">):</span>
+            <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">xyz</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">element</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="n">name</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s1">&#39;ATOM  </span><span class="si">{</span><span class="n">count</span><span class="si">:</span><span class="s1">5d</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">name</span><span class="si">:</span><span class="s1">4s</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">resname</span><span class="si">:</span><span class="s1">3s</span><span class="si">}</span><span class="s1"> </span><span class="si">{</span><span class="n">chainid</span><span class="si">:</span><span class="s1">1s</span><span class="si">}</span><span class="s1">&#39;</span>
+                <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">resseq</span><span class="si">:</span><span class="s1">4d</span><span class="si">}</span><span class="s1">    </span><span class="si">{</span><span class="n">x</span><span class="si">:</span><span class="s1">8.3f</span><span class="si">}{</span><span class="n">y</span><span class="si">:</span><span class="s1">8.3f</span><span class="si">}{</span><span class="n">z</span><span class="si">:</span><span class="s1">8.3f</span><span class="si">}{</span><span class="n">occupancy</span><span class="si">:</span><span class="s1">6.2f</span><span class="si">}</span><span class="s1">&#39;</span>
+                <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">tempfactor</span><span class="si">:</span><span class="s1">6.2f</span><span class="si">}</span><span class="s1">          </span><span class="si">{</span><span class="n">element</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="si">:</span><span class="s1">&gt;2s</span><span class="si">}</span><span class="s1">&#39;</span>
+                <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">charge</span><span class="si">:</span><span class="s1">2</span><span class="si">}</span><span class="s1">&#39;</span>
+            <span class="p">)</span>
+
+        <span class="c1"># bonds</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">js</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bonded_neighbors</span><span class="p">(</span><span class="n">as_indices</span><span class="o">=</span><span class="kc">True</span><span class="p">)):</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s1">&#39;CONECT</span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">:</span><span class="s1">5d</span><span class="si">}</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="si">:</span><span class="s1">5d</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">js</span><span class="p">])</span>
+            <span class="p">)</span>
+
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="s1">&#39;MASTER        0    0    0    0    0    0    0    0&#39;</span>
+            <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">n_atoms</span><span class="si">:</span><span class="s1">5d</span><span class="si">}</span><span class="s1">    0</span><span class="si">{</span><span class="n">n_atoms</span><span class="si">:</span><span class="s1">5d</span><span class="si">}</span><span class="s1">&#39;</span>
+        <span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;END&#39;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PDBMixin.from_pdb_text"><a class="viewcode-back" href="../../molsystem.html#molsystem.pdb.PDBMixin.from_pdb_text">[docs]</a>    <span class="k">def</span> <span class="nf">from_pdb_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create the system from a PDF file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data : str</span>
+<span class="sd">            The complete text of the Molfile.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Initialize the structure</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">periodicity</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">lines</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">lines</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()</span>
+
+        <span class="n">names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">symbols</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">xs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">ys</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">zs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">resnames</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">chainids</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">resseqs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">occupancies</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">tempfactors</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">connections</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">6</span><span class="p">]</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;HEADER&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;OBSLTE&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;TITLE&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;SPLIT&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;CAVEAT&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;COMPND&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;SOURCE&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;KEYWDS&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;EXPDTA&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;NUMMDL&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;MDLTYPE&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;AUTHOR&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;REVDAT&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;SPRSDE&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;JRNL&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;REMARK&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;DBREF&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;DBREF1&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;DBREF2&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;SEQADV&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;SEQRES&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;MODRES&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;HET&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;HETNAM&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;HETSYN&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;FORMUL&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;HELIX&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;SHEET&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;SSBOND&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;LINK&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;CISPEP&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;SITE&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;CRYST1&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;ORIGX1&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;ORIGX2&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;ORIGX3&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;SCALE1&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;SCALE2&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;SCALE3&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;MTRIX1&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;MTRIX2&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;MTRIX3&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;MODEL&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;ATOM&#39;</span> <span class="ow">or</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;HETATM&#39;</span><span class="p">:</span>
+                <span class="c1"># serial = int(line[6:11])  # noqa: F841</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="mi">12</span><span class="p">:</span><span class="mi">16</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="c1"># altloc = line[16]  # noqa: F841</span>
+                <span class="n">resname</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="mi">17</span><span class="p">:</span><span class="mi">20</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="n">chainid</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="mi">21</span><span class="p">]</span>
+                <span class="n">resseq</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="mi">22</span><span class="p">:</span><span class="mi">26</span><span class="p">])</span>
+                <span class="c1"># icode = line[26]  # noqa: F841</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="mi">30</span><span class="p">:</span><span class="mi">38</span><span class="p">])</span>
+                <span class="n">y</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="mi">38</span><span class="p">:</span><span class="mi">46</span><span class="p">])</span>
+                <span class="n">z</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="mi">46</span><span class="p">:</span><span class="mi">54</span><span class="p">])</span>
+                <span class="n">tmp</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="mi">54</span><span class="p">:</span><span class="mi">60</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="n">occupancy</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="k">if</span> <span class="n">tmp</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span> <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
+                <span class="n">tmp</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="mi">60</span><span class="p">:</span><span class="mi">66</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="n">tempfactor</span> <span class="o">=</span> <span class="mf">0.0</span> <span class="k">if</span> <span class="n">tmp</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span> <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
+
+                <span class="c1"># Symbol maybe fully capitalized e.g. &#39;FE&#39;, so need to fix</span>
+                <span class="n">symbol</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="mi">75</span><span class="p">:</span><span class="mi">78</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span>
+                <span class="c1"># tmp = line[78:80].strip()</span>
+                <span class="c1"># charge = 0.0 if tmp == &#39;&#39; else float(tmp)  # noqa: F841</span>
+
+                <span class="n">names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+                <span class="n">symbols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">symbol</span><span class="p">)</span>
+                <span class="n">xs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+                <span class="n">ys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+                <span class="n">zs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+                <span class="n">resnames</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">resname</span><span class="p">)</span>
+                <span class="n">chainids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">chainid</span><span class="p">)</span>
+                <span class="n">resseqs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">resseq</span><span class="p">)</span>
+                <span class="n">occupancies</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">occupancy</span><span class="p">)</span>
+                <span class="n">tempfactors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tempfactor</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;ANISOU&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;TER&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;ENDMDL&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;CONECT&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">connections</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">n_atoms</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">symbols</span><span class="p">)</span>
+                    <span class="n">connections</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_atoms</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                        <span class="n">connections</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">list</span><span class="p">())</span>
+
+                <span class="n">atom</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="mi">6</span><span class="p">:</span><span class="mi">11</span><span class="p">])</span>
+                <span class="c1"># should use columns in case they run together.</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="mi">31</span><span class="p">,</span> <span class="mi">5</span><span class="p">):</span>
+                    <span class="n">tmp</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="mi">5</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">tmp</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+                        <span class="k">break</span>
+                    <span class="n">connections</span><span class="p">[</span><span class="n">atom</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">tmp</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;MASTER&#39;</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;END&#39;</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;Illegal line in PDB file</span><span class="se">\n\t</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">line</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s1">&#39;name&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;string&#39;</span><span class="p">)</span>
+
+        <span class="n">atom_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">symbol</span><span class="o">=</span><span class="n">symbols</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">names</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">xs</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">ys</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="n">zs</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="s1">&#39;resname&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="s1">&#39;resname&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">:]</span> <span class="o">=</span> <span class="n">resnames</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">counts</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">Counter</span><span class="p">(</span><span class="n">resnames</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="p">[</span><span class="o">*</span><span class="n">counts</span><span class="o">.</span><span class="n">keys</span><span class="p">()]</span> <span class="o">!=</span> <span class="p">[</span><span class="s1">&#39;UNK&#39;</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;resname&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;string&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="s1">&#39;resname&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">:]</span> <span class="o">=</span> <span class="n">resnames</span>
+
+        <span class="k">if</span> <span class="s1">&#39;chainid&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="s1">&#39;chainid&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">:]</span> <span class="o">=</span> <span class="n">chainids</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">counts</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">Counter</span><span class="p">(</span><span class="n">chainids</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="p">[</span><span class="o">*</span><span class="n">counts</span><span class="o">.</span><span class="n">keys</span><span class="p">()]</span> <span class="o">!=</span> <span class="p">[</span><span class="s1">&#39;A&#39;</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;chainid&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;string&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="s1">&#39;chainid&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">:]</span> <span class="o">=</span> <span class="n">chainids</span>
+
+        <span class="k">if</span> <span class="s1">&#39;resseq&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="s1">&#39;resseq&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">:]</span> <span class="o">=</span> <span class="n">resseqs</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">counts</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">Counter</span><span class="p">(</span><span class="n">resseqs</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="p">[</span><span class="o">*</span><span class="n">counts</span><span class="o">.</span><span class="n">keys</span><span class="p">()]</span> <span class="o">!=</span> <span class="p">[</span><span class="s1">&#39;1&#39;</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span><span class="s1">&#39;resseq&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="s1">&#39;resseq&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">:]</span> <span class="o">=</span> <span class="n">resseqs</span>
+
+        <span class="k">if</span> <span class="s1">&#39;occupancy&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="s1">&#39;occupancy&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">:]</span> <span class="o">=</span> <span class="n">occupancies</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">counts</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">Counter</span><span class="p">(</span><span class="n">occupancies</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="p">[</span><span class="o">*</span><span class="n">counts</span><span class="o">.</span><span class="n">keys</span><span class="p">()]</span> <span class="o">!=</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span>
+                    <span class="s1">&#39;occupancy&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;float&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="s1">&#39;occupancy&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">:]</span> <span class="o">=</span> <span class="n">occupancies</span>
+
+        <span class="k">if</span> <span class="s1">&#39;tempfactor&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="s1">&#39;tempfactor&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">:]</span> <span class="o">=</span> <span class="n">tempfactors</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">counts</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">Counter</span><span class="p">(</span><span class="n">tempfactors</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="p">[</span><span class="o">*</span><span class="n">counts</span><span class="o">.</span><span class="n">keys</span><span class="p">()]</span> <span class="o">!=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">add_attribute</span><span class="p">(</span>
+                    <span class="s1">&#39;tempfactor&#39;</span><span class="p">,</span> <span class="n">coltype</span><span class="o">=</span><span class="s1">&#39;float&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">1.0</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">atoms</span><span class="p">[</span><span class="s1">&#39;tempfactor&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">:]</span> <span class="o">=</span> <span class="n">tempfactors</span>
+
+        <span class="n">iatom</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">jatom</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">connections</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_atoms</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">connections</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+                    <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">connections</span><span class="p">[</span><span class="n">j</span><span class="p">]:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Bond </span><span class="si">{</span><span class="n">j</span><span class="si">}</span><span class="s1">-</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1"> not found in PDB file&#39;</span><span class="p">)</span>
+                        <span class="c1"># put in the bond since we won&#39;t see its partner!</span>
+                        <span class="n">iatom</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">atom_id</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+                        <span class="n">jatom</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">atom_id</span><span class="p">[</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+                    <span class="k">elif</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">j</span><span class="p">:</span>
+                        <span class="c1"># put in only 1 of 2 equivalent bonds</span>
+                        <span class="n">iatom</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">atom_id</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+                        <span class="n">jatom</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">atom_id</span><span class="p">[</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">bonds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="o">=</span><span class="n">iatom</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="n">jatom</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+
+    </p>
+  </div>
+
+<p>
+<div class="row">
+  <div class="column_left">
+    <a href="https://molssi.org/" target="_blank" title="Go to MolSSI in a new tab">
+      <img src="/_images/MolSSI.jpg" alt="The MolSSI" style="border:0;">
+    </a>
+  </div>
+  <div class="column">
+    &copy; Copyright 2020, the Molecular Sciences Software Institute,
+    which receives funding from the National Science Foundation under award ACI-1547580
+  </div>
+  <div class="column_right">
+    <a href="https://nsf.gov/" target="_blank" title="Go to the NSF in a new tab">
+      <img src="/_images/NSF_4-Color_bitmap_Logo.png" alt="The NSF" style="border:0;">
+    </a>
+  </div>
+</div>
+
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
